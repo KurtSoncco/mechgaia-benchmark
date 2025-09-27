@@ -1,237 +1,328 @@
 #!/usr/bin/env python3
 """
-Test Suite for Green Agent
+Test Suite for AgentBeats Green Agent
 
-This module contains tests to validate the functionality of the Green Agent.
+This module contains tests to validate the functionality of the AgentBeats-compliant
+Green Agent coordination system.
 """
 
 import unittest
-from datetime import datetime
+import time
 import json
 import os
 import tempfile
-from green_agent import GreenAgent, EnergyUsage, CarbonFootprint, GreenRecommendation
+from green_agent import GreenAgent, AgentStatus, Message, AgentInfo
 
 
 class TestGreenAgent(unittest.TestCase):
-    """Test cases for the Green Agent class."""
+    """Test cases for the Green Agent coordination system."""
     
     def setUp(self):
         """Set up test fixtures before each test method."""
-        self.agent = GreenAgent("TestAgent")
+        self.coordinator = GreenAgent("TestCoordinator")
     
     def tearDown(self):
         """Clean up after each test method."""
         # Clean up any generated files
-        test_files = ["green_report.json", "test_report.json"]
-        for file in test_files:
-            if os.path.exists(file):
-                os.remove(file)
+        test_files = ["coordination_session_*.json"]
+        for file_pattern in test_files:
+            import glob
+            for file in glob.glob(file_pattern):
+                if os.path.exists(file):
+                    os.remove(file)
     
-    def test_agent_initialization(self):
-        """Test Green Agent initialization."""
-        self.assertEqual(self.agent.name, "TestAgent")
-        self.assertEqual(len(self.agent.energy_data), 0)
-        self.assertEqual(len(self.agent.carbon_data), 0)
-        self.assertEqual(len(self.agent.recommendations), 0)
+    def test_coordinator_initialization(self):
+        """Test Green Agent coordinator initialization."""
+        self.assertEqual(self.coordinator.name, "TestCoordinator")
+        self.assertEqual(len(self.coordinator.agents), 0)
+        self.assertEqual(len(self.coordinator.shared_state), 0)
+        self.assertFalse(self.coordinator.session_active)
+        self.assertEqual(len(self.coordinator.turn_order), 0)
     
-    def test_add_energy_usage(self):
-        """Test adding energy usage data."""
-        self.agent.add_energy_usage("test_device", 10.0, "renewable")
+    def test_agent_registration(self):
+        """Test registering agents with the coordinator."""
+        # Register first agent
+        success = self.coordinator.register_agent("agent1", "test_agent", ["capability1"])
+        self.assertTrue(success)
+        self.assertIn("agent1", self.coordinator.agents)
+        self.assertEqual(self.coordinator.agents["agent1"].agent_type, "test_agent")
+        self.assertEqual(self.coordinator.agents["agent1"].capabilities, ["capability1"])
         
-        self.assertEqual(len(self.agent.energy_data), 1)
-        self.assertEqual(len(self.agent.carbon_data), 1)  # Should auto-generate carbon data
+        # Register second agent
+        success = self.coordinator.register_agent("agent2", "chess_agent", ["chess_playing"])
+        self.assertTrue(success)
+        self.assertEqual(len(self.coordinator.agents), 2)
         
-        energy_entry = self.agent.energy_data[0]
-        self.assertEqual(energy_entry.device_id, "test_device")
-        self.assertEqual(energy_entry.power_consumption, 10.0)
-        self.assertEqual(energy_entry.source, "renewable")
+        # Try to register duplicate agent
+        success = self.coordinator.register_agent("agent1", "duplicate", [])
+        self.assertFalse(success)
+        self.assertEqual(len(self.coordinator.agents), 2)
     
-    def test_add_carbon_footprint(self):
-        """Test adding carbon footprint data."""
-        self.agent.add_carbon_footprint("test_activity", 5.0, "transport")
+    def test_agent_unregistration(self):
+        """Test unregistering agents from the coordinator."""
+        # Register and then unregister agent
+        self.coordinator.register_agent("agent1", "test_agent")
+        self.coordinator.register_agent("agent2", "test_agent")
         
-        self.assertEqual(len(self.agent.carbon_data), 1)
+        success = self.coordinator.unregister_agent("agent1")
+        self.assertTrue(success)
+        self.assertNotIn("agent1", self.coordinator.agents)
+        self.assertEqual(len(self.coordinator.agents), 1)
         
-        carbon_entry = self.agent.carbon_data[0]
-        self.assertEqual(carbon_entry.activity, "test_activity")
-        self.assertEqual(carbon_entry.co2_emissions, 5.0)
-        self.assertEqual(carbon_entry.category, "transport")
+        # Try to unregister non-existent agent
+        success = self.coordinator.unregister_agent("nonexistent")
+        self.assertFalse(success)
     
-    def test_calculate_total_carbon_footprint(self):
-        """Test carbon footprint calculation."""
-        self.agent.add_carbon_footprint("activity1", 10.0, "transport")
-        self.agent.add_carbon_footprint("activity2", 5.0, "energy")
+    def test_shared_state_management(self):
+        """Test shared state update and retrieval."""
+        # Update shared state
+        success = self.coordinator.update_shared_state("key1", "value1")
+        self.assertTrue(success)
         
-        total = self.agent.calculate_total_carbon_footprint()
-        self.assertEqual(total, 15.0)
+        # Get specific key
+        value = self.coordinator.get_shared_state("key1")
+        self.assertEqual(value, "value1")
+        
+        # Get all state
+        all_state = self.coordinator.get_shared_state()
+        self.assertIn("key1", all_state)
+        self.assertEqual(all_state["key1"], "value1")
+        
+        # Update existing key
+        self.coordinator.update_shared_state("key1", "updated_value")
+        value = self.coordinator.get_shared_state("key1")
+        self.assertEqual(value, "updated_value")
     
-    def test_calculate_energy_efficiency_score(self):
-        """Test energy efficiency score calculation."""
-        # Test with no data
-        score = self.agent.calculate_energy_efficiency_score()
-        self.assertEqual(score, 0.0)
+    def test_message_passing(self):
+        """Test agent-to-agent message passing."""
+        # Register agents
+        self.coordinator.register_agent("agent1", "test_agent")
+        self.coordinator.register_agent("agent2", "test_agent")
         
-        # Test with mixed energy sources
-        self.agent.add_energy_usage("device1", 20.0, "renewable")
-        self.agent.add_energy_usage("device2", 30.0, "fossil")
+        # Send message
+        success = self.coordinator.send_message("agent1", "agent2", "test_msg", {"data": "test"})
+        self.assertTrue(success)
         
-        score = self.agent.calculate_energy_efficiency_score()
-        self.assertEqual(score, 40.0)  # 20/(20+30) * 100 = 40%
+        # Retrieve messages for agent2
+        messages = self.coordinator.get_messages_for_agent("agent2")
+        self.assertEqual(len(messages), 1)
+        self.assertEqual(messages[0].sender_id, "agent1")
+        self.assertEqual(messages[0].recipient_id, "agent2")
+        self.assertEqual(messages[0].message_type, "test_msg")
+        self.assertEqual(messages[0].content["data"], "test")
         
-        # Test with 100% renewable
-        agent2 = GreenAgent("TestAgent2")
-        agent2.add_energy_usage("device1", 10.0, "renewable")
-        
-        score = agent2.calculate_energy_efficiency_score()
-        self.assertEqual(score, 100.0)
+        # No messages for agent1
+        messages = self.coordinator.get_messages_for_agent("agent1")
+        self.assertEqual(len(messages), 0)
     
-    def test_generate_recommendations(self):
-        """Test recommendation generation."""
-        # Add data that should trigger recommendations
-        self.agent.add_energy_usage("high_consumption_device", 15.0, "fossil")
+    def test_session_management(self):
+        """Test coordination session start/end."""
+        # Register agents
+        self.coordinator.register_agent("agent1", "test_agent")
+        self.coordinator.register_agent("agent2", "test_agent")
         
-        recommendations = self.agent.generate_recommendations()
+        # Start session
+        success = self.coordinator.start_coordination_session()
+        self.assertTrue(success)
+        self.assertTrue(self.coordinator.session_active)
         
-        # Should generate at least the basic recommendations
-        self.assertGreater(len(recommendations), 0)
+        # Can't start another session while one is active
+        success = self.coordinator.start_coordination_session()
+        self.assertFalse(success)
         
-        # Check if renewable energy recommendation is generated (efficiency < 50%)
-        renewable_rec = any(rec.title == "Switch to Renewable Energy" for rec in recommendations)
-        self.assertTrue(renewable_rec)
-        
-        # Check if high consumption warning is generated
-        consumption_rec = any(rec.title == "Reduce Energy Consumption" for rec in recommendations)
-        self.assertTrue(consumption_rec)
+        # End session
+        summary = self.coordinator.end_coordination_session()
+        self.assertFalse(self.coordinator.session_active)
+        self.assertIn("session_duration", summary)
+        self.assertIn("total_events", summary)
+        self.assertIn("participating_agents", summary)
     
-    def test_environmental_report(self):
-        """Test environmental report generation."""
-        # Add some test data
-        self.agent.add_energy_usage("device1", 10.0, "renewable")
-        self.agent.add_carbon_footprint("transport", 5.0, "transport")
+    def test_turn_management(self):
+        """Test turn-based coordination."""
+        # Register agents
+        self.coordinator.register_agent("agent1", "test_agent")
+        self.coordinator.register_agent("agent2", "test_agent")
         
-        report = self.agent.get_environmental_report()
+        # Start session
+        self.coordinator.start_coordination_session()
         
-        # Check report structure
-        self.assertIn("agent_name", report)
-        self.assertIn("timestamp", report)
-        self.assertIn("summary", report)
-        self.assertIn("carbon_by_category", report)
-        self.assertIn("energy_sources", report)
-        self.assertIn("recommendations", report)
+        # Check initial turn
+        current_agent = self.coordinator.get_current_turn_agent()
+        self.assertEqual(current_agent, "agent1")
         
-        # Check summary data
-        summary = report["summary"]
-        self.assertEqual(summary["total_carbon_footprint_kg"], 5.0)
-        self.assertEqual(summary["total_energy_consumption_kwh"], 10.0)
-        self.assertEqual(summary["energy_efficiency_score"], 100.0)
+        # Advance turn
+        next_agent = self.coordinator.advance_turn()
+        self.assertEqual(next_agent, "agent2")
+        
+        # Advance turn again (should cycle back)
+        next_agent = self.coordinator.advance_turn()
+        self.assertEqual(next_agent, "agent1")
     
-    def test_save_report(self):
-        """Test saving report to file."""
-        self.agent.add_energy_usage("device1", 5.0, "mixed")
+    def test_agent_action_request(self):
+        """Test requesting actions from agents."""
+        # Register agent
+        self.coordinator.register_agent("agent1", "test_agent")
         
+        # Request action
+        success = self.coordinator.request_agent_action("agent1", "test_action", {"param": "value"})
+        self.assertTrue(success)
+        
+        # Check agent status changed
+        self.assertEqual(self.coordinator.agents["agent1"].status, AgentStatus.THINKING)
+        
+        # Receive response
+        success = self.coordinator.agent_response_received("agent1", {"result": "success"})
+        self.assertTrue(success)
+        
+        # Check agent status changed
+        self.assertEqual(self.coordinator.agents["agent1"].status, AgentStatus.DONE)
+    
+    def test_coordination_status(self):
+        """Test getting coordination status."""
+        # Register agents and start session
+        self.coordinator.register_agent("agent1", "chess_agent", ["chess_playing"])
+        self.coordinator.register_agent("agent2", "chess_agent", ["chess_playing"])
+        self.coordinator.start_coordination_session()
+        
+        status = self.coordinator.get_coordination_status()
+        
+        # Check status structure
+        self.assertIn("coordinator_name", status)
+        self.assertIn("session_active", status)
+        self.assertIn("current_turn", status)
+        self.assertIn("agents", status)
+        self.assertIn("shared_state_keys", status)
+        
+        # Check status values
+        self.assertEqual(status["coordinator_name"], "TestCoordinator")
+        self.assertTrue(status["session_active"])
+        self.assertEqual(len(status["agents"]), 2)
+    
+    def test_session_log_saving(self):
+        """Test saving session logs to file."""
+        # Register agents and do some activities
+        self.coordinator.register_agent("agent1", "test_agent")
+        self.coordinator.update_shared_state("test_key", "test_value")
+        self.coordinator.start_coordination_session()
+        self.coordinator.advance_turn()
+        
+        # Save session log
         with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
             temp_filename = f.name
         
         try:
-            self.agent.save_report(temp_filename)
+            saved_file = self.coordinator.save_session_log(temp_filename)
+            self.assertEqual(saved_file, temp_filename)
             
-            # Check if file was created
+            # Check if file was created and contains valid JSON
             self.assertTrue(os.path.exists(temp_filename))
             
-            # Check if file contains valid JSON
             with open(temp_filename, 'r') as f:
                 data = json.load(f)
-                self.assertIn("agent_name", data)
-                self.assertEqual(data["agent_name"], "TestAgent")
+                self.assertIn("coordinator", data)
+                self.assertIn("session_log", data)
+                self.assertIn("final_state", data)
+                self.assertIn("agent_summary", data)
+                self.assertEqual(data["coordinator"], "TestCoordinator")
         finally:
             # Clean up
             if os.path.exists(temp_filename):
                 os.remove(temp_filename)
     
-    def test_carbon_intensity_calculation(self):
-        """Test carbon intensity calculations for different energy sources."""
-        # Test renewable energy (should have 0 emissions)
-        self.agent.add_energy_usage("solar", 10.0, "renewable")
-        carbon_renewable = [c for c in self.agent.carbon_data if "solar" in c.activity][0]
-        self.assertEqual(carbon_renewable.co2_emissions, 0.0)
+    def test_chess_game_simulation(self):
+        """Test a complete chess game coordination scenario."""
+        # Register chess agents
+        self.coordinator.register_agent("gpt4o_player", "chess_agent", ["chess_playing"])
+        self.coordinator.register_agent("gpt5_player", "chess_agent", ["chess_playing"])
         
-        # Test fossil energy
-        agent2 = GreenAgent("TestAgent2")
-        agent2.add_energy_usage("coal", 10.0, "fossil")
-        carbon_fossil = [c for c in agent2.carbon_data if "coal" in c.activity][0]
-        self.assertEqual(carbon_fossil.co2_emissions, 10.0 * 0.82)  # 8.2 kg CO2
+        # Initialize chess game state
+        self.coordinator.update_shared_state("board", "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR")
+        self.coordinator.update_shared_state("game_status", "active")
+        self.coordinator.update_shared_state("move_count", 0)
         
-        # Test mixed energy
-        agent3 = GreenAgent("TestAgent3")
-        agent3.add_energy_usage("grid", 10.0, "mixed")
-        carbon_mixed = [c for c in agent3.carbon_data if "grid" in c.activity][0]
-        self.assertEqual(carbon_mixed.co2_emissions, 10.0 * 0.41)  # 4.1 kg CO2
+        # Start coordination
+        success = self.coordinator.start_coordination_session()
+        self.assertTrue(success)
+        
+        # Simulate several moves
+        for move_num in range(3):
+            current_player = self.coordinator.get_current_turn_agent()
+            self.assertIn(current_player, ["gpt4o_player", "gpt5_player"])
+            
+            # Request move
+            success = self.coordinator.request_agent_action(
+                current_player, 
+                "make_move", 
+                {"board_state": self.coordinator.get_shared_state("board")}
+            )
+            self.assertTrue(success)
+            
+            # Simulate response
+            success = self.coordinator.agent_response_received(
+                current_player, 
+                {"move": f"move_{move_num + 1}"}
+            )
+            self.assertTrue(success)
+            
+            # Update state
+            self.coordinator.update_shared_state("move_count", move_num + 1)
+            
+            # Advance turn
+            next_player = self.coordinator.advance_turn()
+            
+        # Verify final state
+        self.assertEqual(self.coordinator.get_shared_state("move_count"), 3)
+        
+        # End session
+        summary = self.coordinator.end_coordination_session()
+        self.assertGreater(summary["total_events"], 5)  # Should have multiple events
     
     def test_str_representation(self):
-        """Test string representation of the agent."""
-        self.agent.add_energy_usage("device1", 10.0, "fossil")
-        self.agent.add_carbon_footprint("transport", 5.0, "transport")
-        
-        agent_str = str(self.agent)
-        self.assertIn("TestAgent", agent_str)
-        self.assertIn("Carbon Footprint", agent_str)
-        self.assertIn("Energy Efficiency", agent_str)
+        """Test string representation of the coordinator."""
+        coordinator_str = str(self.coordinator)
+        self.assertIn("TestCoordinator", coordinator_str)
+        self.assertIn("Status:", coordinator_str)
+        self.assertIn("Agents:", coordinator_str)
 
 
 class TestDataClasses(unittest.TestCase):
     """Test cases for data classes used by Green Agent."""
     
-    def test_energy_usage_dataclass(self):
-        """Test EnergyUsage dataclass."""
-        timestamp = datetime.now()
-        usage = EnergyUsage(
-            timestamp=timestamp,
-            device_id="test_device",
-            power_consumption=15.5,
-            source="renewable"
+    def test_message_dataclass(self):
+        """Test Message dataclass."""
+        message = Message(
+            sender_id="agent1",
+            recipient_id="agent2",
+            message_type="test",
+            content={"data": "test"}
         )
         
-        self.assertEqual(usage.timestamp, timestamp)
-        self.assertEqual(usage.device_id, "test_device")
-        self.assertEqual(usage.power_consumption, 15.5)
-        self.assertEqual(usage.source, "renewable")
+        self.assertEqual(message.sender_id, "agent1")
+        self.assertEqual(message.recipient_id, "agent2")
+        self.assertEqual(message.message_type, "test")
+        self.assertEqual(message.content["data"], "test")
+        self.assertIsNotNone(message.timestamp)
     
-    def test_carbon_footprint_dataclass(self):
-        """Test CarbonFootprint dataclass."""
-        timestamp = datetime.now()
-        footprint = CarbonFootprint(
-            activity="test_activity",
-            co2_emissions=25.7,
-            timestamp=timestamp,
-            category="transport"
+    def test_agent_info_dataclass(self):
+        """Test AgentInfo dataclass."""
+        agent_info = AgentInfo(
+            agent_id="test_agent",
+            agent_type="chess_agent",
+            status=AgentStatus.WAITING,
+            capabilities=["chess_playing"],
+            last_activity=None
         )
         
-        self.assertEqual(footprint.activity, "test_activity")
-        self.assertEqual(footprint.co2_emissions, 25.7)
-        self.assertEqual(footprint.timestamp, timestamp)
-        self.assertEqual(footprint.category, "transport")
-    
-    def test_green_recommendation_dataclass(self):
-        """Test GreenRecommendation dataclass."""
-        recommendation = GreenRecommendation(
-            title="Test Recommendation",
-            description="Test description",
-            impact="high",
-            category="energy",
-            estimated_savings=10.5
-        )
-        
-        self.assertEqual(recommendation.title, "Test Recommendation")
-        self.assertEqual(recommendation.description, "Test description")
-        self.assertEqual(recommendation.impact, "high")
-        self.assertEqual(recommendation.category, "energy")
-        self.assertEqual(recommendation.estimated_savings, 10.5)
+        self.assertEqual(agent_info.agent_id, "test_agent")
+        self.assertEqual(agent_info.agent_type, "chess_agent")
+        self.assertEqual(agent_info.status, AgentStatus.WAITING)
+        self.assertEqual(agent_info.capabilities, ["chess_playing"])
+        self.assertIsNotNone(agent_info.last_activity)
 
 
 if __name__ == "__main__":
-    print("Running Green Agent Test Suite...")
-    print("="*50)
+    print("Running AgentBeats Green Agent Test Suite...")
+    print("="*60)
     
     # Create test suite
     loader = unittest.TestLoader()
@@ -246,7 +337,7 @@ if __name__ == "__main__":
     result = runner.run(suite)
     
     # Print summary
-    print("\n" + "="*50)
+    print("\n" + "="*60)
     if result.wasSuccessful():
         print("✅ All tests passed!")
     else:
@@ -255,4 +346,4 @@ if __name__ == "__main__":
         print(f"Errors: {len(result.errors)}")
     
     print(f"Tests run: {result.testsRun}")
-    print("="*50)
+    print("="*60)

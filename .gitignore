@@ -44,10 +44,10 @@ venv.bak/
 ehthumbs.db
 Thumbs.db
 
-# Generated reports
-*_report_*.json
-green_report.json
-environmental_report_*.json
+# Generated coordination session logs
+coordination_session_*.json
+chess_game_log.json
+*_log.json
 
 # Temporary files
 *.tmp

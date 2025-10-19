@@ -225,7 +225,7 @@ def main():
     
     # Start health check server in background
     def start_health_server():
-        port = int(os.environ.get('PORT', 8080))
+        port = int(os.environ.get('AGENTBEATS_PORT', os.environ.get('PORT', 8080)))
         server = HTTPServer(('0.0.0.0', port), HealthHandler)
         server.serve_forever()
     

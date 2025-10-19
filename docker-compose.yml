@@ -18,7 +18,7 @@ services:
       - ./tasks:/app/tasks
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "python", "-c", "import sys; sys.exit(0)"]
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8080/health')"]
       interval: 30s
       timeout: 10s
       retries: 3

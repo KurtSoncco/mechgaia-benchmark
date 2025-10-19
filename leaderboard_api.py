@@ -4,20 +4,19 @@ MechGAIA Leaderboard API
 FastAPI-based REST API for accessing MechGAIA benchmark metrics and leaderboard data.
 """
 
+from datetime import datetime, timezone
+
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
-from typing import List, Optional
-import json
-from datetime import datetime, timezone
 
-from metrics_system import metrics_collector, EvaluationResult
+from metrics_system import EvaluationResult, metrics_collector
 
 # Initialize FastAPI app
 app = FastAPI(
     title="MechGAIA Leaderboard API",
     description="API for MechGAIA benchmark metrics and leaderboard",
-    version="0.1.0"
+    version="0.1.0",
 )
 
 # Add CORS middleware
@@ -40,8 +39,8 @@ async def root():
             "leaderboard": "/leaderboard",
             "agent_stats": "/agent/{agent_id}/stats",
             "task_stats": "/task/{task_level}/stats",
-            "health": "/health"
-        }
+            "health": "/health",
+        },
     }
 
 
@@ -54,15 +53,17 @@ async def health_check():
 @app.get("/leaderboard")
 async def get_leaderboard(
     limit: int = Query(10, ge=1, le=100, description="Number of entries to return"),
-    sort_by: str = Query("total_score", description="Sort by: total_score, best_score, evaluations_count")
+    sort_by: str = Query(
+        "total_score", description="Sort by: total_score, best_score, evaluations_count"
+    ),
 ):
     """
     Get the current leaderboard.
-    
+
     Args:
         limit: Maximum number of entries to return (1-100)
         sort_by: Sort criteria (total_score, best_score, evaluations_count)
-    
+
     Returns:
         List of leaderboard entries
     """
@@ -72,7 +73,7 @@ async def get_leaderboard(
             "leaderboard": leaderboard,
             "total_entries": len(leaderboard),
             "sort_by": sort_by,
-            "timestamp": datetime.now(timezone.utc).isoformat()
+            "timestamp": datetime.now(timezone.utc).isoformat(),
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -82,10 +83,10 @@ async def get_leaderboard(
 async def get_agent_stats(agent_id: str):
     """
     Get detailed statistics for a specific agent.
-    
+
     Args:
         agent_id: The agent's unique identifier
-    
+
     Returns:
         Agent statistics and evaluation history
     """
@@ -104,16 +105,16 @@ async def get_agent_stats(agent_id: str):
 async def get_task_stats(task_level: int):
     """
     Get statistics for a specific task level.
-    
+
     Args:
         task_level: The task level (1, 2, or 3)
-    
+
     Returns:
         Task level statistics and top performers
     """
     if task_level not in [1, 2, 3]:
         raise HTTPException(status_code=400, detail="Task level must be 1, 2, or 3")
-    
+
     try:
         stats = metrics_collector.get_task_level_stats(task_level)
         return stats
@@ -125,10 +126,10 @@ async def get_task_stats(task_level: int):
 async def record_evaluation(evaluation_data: dict):
     """
     Record a new evaluation result.
-    
+
     Args:
         evaluation_data: Dictionary containing evaluation result data
-    
+
     Returns:
         Confirmation of recorded evaluation
     """
@@ -144,20 +145,20 @@ async def record_evaluation(evaluation_data: dict):
             timestamp=datetime.now(timezone.utc),
             submission_data=evaluation_data.get("submission_data", {}),
             evaluation_time_ms=evaluation_data.get("evaluation_time_ms", 0),
-            platform=evaluation_data.get("platform", "AgentBeats")
+            platform=evaluation_data.get("platform", "AgentBeats"),
         )
-        
+
         # Record the evaluation
         metrics_collector.record_evaluation(result)
-        
+
         return {
             "message": "Evaluation recorded successfully",
             "agent_id": result.agent_id,
             "task_level": result.task_level,
             "final_score": result.final_score,
-            "timestamp": result.timestamp.isoformat()
+            "timestamp": result.timestamp.isoformat(),
         }
-        
+
     except KeyError as e:
         raise HTTPException(status_code=400, detail=f"Missing required field: {e}")
     except Exception as e:
@@ -295,4 +296,5 @@ async def dashboard():
 
 if __name__ == "__main__":
     import uvicorn
+
     uvicorn.run(app, host="0.0.0.0", port=8000)

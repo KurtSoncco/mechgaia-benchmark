@@ -1,9 +1,11 @@
 # utils/safe_runner.py
-import traceback
-import numpy as np
 import math
+import traceback
 
-def execute_code(code_string: str, controlled_scope: dict = None) -> dict:
+import numpy as np
+
+
+def execute_code(code_string: str, controlled_scope: dict = {}) -> dict:
     """
     Executes a string of Python code in a restricted scope and captures the output.
 
@@ -18,17 +20,28 @@ def execute_code(code_string: str, controlled_scope: dict = None) -> dict:
         # Provide a controlled global scope with common math libraries
         controlled_scope = {
             "__builtins__": {
-                "print": print, "range": range, "abs": abs, "round": round,
-                "len": len, "min": min, "max": max, "sum": sum,
-                "float": float, "int": int, "str": str, "list": list, "dict": dict,
-                "open": None, "file": None  # Block file operations but allow __import__
+                "print": print,
+                "range": range,
+                "abs": abs,
+                "round": round,
+                "len": len,
+                "min": min,
+                "max": max,
+                "sum": sum,
+                "float": float,
+                "int": int,
+                "str": str,
+                "list": list,
+                "dict": dict,
+                "open": None,
+                "file": None,  # Block file operations but allow __import__
             },
             # Safe libraries for engineering calculations
             "np": np,
             "numpy": np,
             "math": math,
             "pi": math.pi,
-            "e": math.e
+            "e": math.e,
         }
 
     try:
@@ -43,7 +56,7 @@ def execute_code(code_string: str, controlled_scope: dict = None) -> dict:
             return {
                 "success": False,
                 "result": None,
-                "error": "Execution succeeded, but no 'result' variable was found."
+                "error": "Execution succeeded, but no 'result' variable was found.",
             }
 
         return {"success": True, "result": result, "error": None}

@@ -1,5 +1,6 @@
 # utils/cad_verifier.py
 
+
 class CADAnalysisTool:
     """
     A mock CAD/FEA analysis tool for the MechGAIA benchmark.
@@ -32,22 +33,22 @@ class CADAnalysisTool:
             return {
                 "mass_kg": 1.5,
                 "max_deflection_mm": 2.1,
-                "analysis_successful": True
+                "analysis_successful": True,
             }
-        
+
         elif "modified" in step_file_path:
             # Metrics for a hypothetical "good" solution from a white agent
             # This represents a successful optimization.
             return {
-                "mass_kg": 1.7,           # Mass increased by ~13% (within 15% limit)
-                "max_deflection_mm": 1.5, # Deflection reduced by ~28% (more than 25% goal)
-                "analysis_successful": True
+                "mass_kg": 1.7,  # Mass increased by ~13% (within 15% limit)
+                "max_deflection_mm": 1.5,  # Deflection reduced by ~28% (more than 25% goal)
+                "analysis_successful": True,
             }
-        
+
         else:
             # Return a failure state for any other file
             return {
                 "mass_kg": -1,
                 "max_deflection_mm": -1,
-                "analysis_successful": False
+                "analysis_successful": False,
             }

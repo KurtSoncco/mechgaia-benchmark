@@ -1,9 +1,10 @@
 # /agents/green_agent_base.py
 import json
 
+
 class MechGAIABaseGreenAgent:
     """A base class for all MechGAIA green agents."""
-    
+
     def __init__(self, task_id):
         self.task_id = task_id
         self.prompt = self.setup_task()
@@ -20,9 +21,9 @@ class MechGAIABaseGreenAgent:
         3. Returns a final score.
         """
         try:
-            with open(white_agent_submission_path, 'r') as f:
+            with open(white_agent_submission_path, "r") as f:
                 submission_data = json.load(f)
-            
+
             score_details = self.verify_submission(submission_data)
             return self.calculate_final_score(score_details)
 

@@ -1,5 +1,10 @@
 # /agents/level3_plate_optimization_task.py
-from utils.cad_verifier import CADAnalysisTool  # A utility for CAD/FEA analysis
+try:
+    from utils.cad_verifier import CADAnalysisTool  # A utility for CAD/FEA analysis
+    CAD_VERIFIER_AVAILABLE = True
+except ImportError:
+    print("Warning: CAD verifier not available")
+    CAD_VERIFIER_AVAILABLE = False
 
 from .green_agent_base import MechGAIABaseGreenAgent
 
@@ -25,6 +30,10 @@ class Level3PlateOptimizationTask(MechGAIABaseGreenAgent):
     def verify_submission(self, submission_data):
         """Runs CAD analysis on both files and checks constraints."""
         score_details = {"deflection_constraint_met": 0.0, "mass_constraint_met": 0.0}
+
+        if not CAD_VERIFIER_AVAILABLE:
+            score_details["error"] = "CAD verifier not available"
+            return score_details
 
         # Initialize the CAD analysis tool
         cad_tool = CADAnalysisTool()

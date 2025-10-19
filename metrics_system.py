@@ -43,13 +43,31 @@ class MetricsCollector:
         """
         self.db_path = db_path
         self.redis_url = redis_url
-        self._init_database()
-        self._init_redis()
+        self.redis_client = None
+        
+        try:
+            self._init_database()
+            print("Database initialized successfully")
+        except Exception as e:
+            print(f"Warning: Database initialization failed: {e}")
+        
+        try:
+            self._init_redis()
+        except Exception as e:
+            print(f"Warning: Redis initialization failed: {e}")
     
     def _init_database(self):
         """Initialize SQLite database schema."""
-        conn = sqlite3.connect(self.db_path)
-        cursor = conn.cursor()
+        try:
+            # Ensure the directory exists
+            db_dir = Path(self.db_path).parent
+            db_dir.mkdir(parents=True, exist_ok=True)
+            
+            conn = sqlite3.connect(self.db_path)
+            cursor = conn.cursor()
+        except Exception as e:
+            print(f"Failed to connect to database: {e}")
+            raise
         
         # Create evaluations table
         cursor.execute("""
@@ -108,36 +126,48 @@ class MetricsCollector:
         Args:
             result: The evaluation result to record
         """
-        conn = sqlite3.connect(self.db_path)
-        cursor = conn.cursor()
+        try:
+            conn = sqlite3.connect(self.db_path)
+            cursor = conn.cursor()
+        except Exception as e:
+            print(f"Failed to connect to database for recording: {e}")
+            return
         
-        # Insert evaluation
-        cursor.execute("""
-            INSERT INTO evaluations 
-            (agent_id, agent_name, task_level, task_id, final_score, details, 
-             timestamp, submission_data, evaluation_time_ms, platform)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """, (
-            result.agent_id,
-            result.agent_name,
-            result.task_level,
-            result.task_id,
-            result.final_score,
-            json.dumps(result.details),
-            result.timestamp.isoformat(),
-            json.dumps(result.submission_data),
-            result.evaluation_time_ms,
-            result.platform
-        ))
-        
-        # Update leaderboard
-        self._update_leaderboard(result)
-        
-        conn.commit()
-        conn.close()
-        
-        # Update Redis leaderboard
-        self._update_redis_leaderboard(result)
+        try:
+            # Insert evaluation
+            cursor.execute("""
+                INSERT INTO evaluations 
+                (agent_id, agent_name, task_level, task_id, final_score, details, 
+                 timestamp, submission_data, evaluation_time_ms, platform)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (
+                result.agent_id,
+                result.agent_name,
+                result.task_level,
+                result.task_id,
+                result.final_score,
+                json.dumps(result.details),
+                result.timestamp.isoformat(),
+                json.dumps(result.submission_data),
+                result.evaluation_time_ms,
+                result.platform
+            ))
+            
+            # Update leaderboard
+            self._update_leaderboard(result)
+            
+            conn.commit()
+            conn.close()
+            
+            # Update Redis leaderboard
+            self._update_redis_leaderboard(result)
+        except Exception as e:
+            print(f"Failed to record evaluation: {e}")
+            try:
+                conn.rollback()
+                conn.close()
+            except:
+                pass
     
     def _update_leaderboard(self, result: EvaluationResult):
         """Update the SQLite leaderboard."""

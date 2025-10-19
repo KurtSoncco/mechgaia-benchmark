@@ -1,6 +1,11 @@
 # /agents/level2_shaft_design_task.py
-import numpy as np
-import pandas as pd
+try:
+    import numpy as np
+    import pandas as pd
+    NUMPY_PANDAS_AVAILABLE = True
+except ImportError:
+    print("Warning: numpy/pandas not available")
+    NUMPY_PANDAS_AVAILABLE = False
 
 from .green_agent_base import MechGAIABaseGreenAgent
 
@@ -9,13 +14,23 @@ class Level2ShaftDesignTask(MechGAIABaseGreenAgent):
     def setup_task(self):
         """Provides the task and path to the material database."""
         # Create a simple material database for the task
-        materials = {
-            "Material": ["Steel_1020", "Aluminum_6061-T6", "Titanium_Ti-6Al-4V"],
-            "Yield_Strength_Pa": [3.5e8, 2.7e8, 8.3e8],
-        }
-        pd.DataFrame(materials).to_csv(
-            "tasks/level2/material_database.csv", index=False
-        )
+        if NUMPY_PANDAS_AVAILABLE:
+            materials = {
+                "Material": ["Steel_1020", "Aluminum_6061-T6", "Titanium_Ti-6Al-4V"],
+                "Yield_Strength_Pa": [3.5e8, 2.7e8, 8.3e8],
+            }
+            pd.DataFrame(materials).to_csv(
+                "tasks/level2/material_database.csv", index=False
+            )
+        else:
+            # Create a simple CSV manually if pandas is not available
+            import os
+            os.makedirs("tasks/level2", exist_ok=True)
+            with open("tasks/level2/material_database.csv", "w") as f:
+                f.write("Material,Yield_Strength_Pa\n")
+                f.write("Steel_1020,350000000\n")
+                f.write("Aluminum_6061-T6,270000000\n")
+                f.write("Titanium_Ti-6Al-4V,830000000\n")
 
         prompt = {
             "task_id": self.task_id,

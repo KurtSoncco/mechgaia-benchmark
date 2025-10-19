@@ -9,6 +9,7 @@ It handles the communication with the AgentBeats SDK and orchestrates the evalua
 import json
 import sys
 import os
+import time
 from typing import Dict, Any, Optional
 from pathlib import Path
 
@@ -19,6 +20,8 @@ sys.path.insert(0, str(project_root))
 from agents.level1_stress_task import Level1StressTask
 from agents.level2_shaft_design_task import Level2ShaftDesignTask
 from agents.level3_plate_optimization_task import Level3PlateOptimizationTask
+from metrics_system import metrics_collector, EvaluationResult
+from datetime import datetime, timezone
 
 
 class MechGAIAGreenAgent:
@@ -107,12 +110,41 @@ class MechGAIAGreenAgent:
         Returns:
             Dictionary containing evaluation results
         """
+        start_time = time.time()
+        
         try:
             # Verify the submission
             score_details = green_agent.verify_submission(submission_data)
             
             # Calculate final score
             results = green_agent.calculate_final_score(score_details)
+            
+            # Record metrics
+            evaluation_time_ms = int((time.time() - start_time) * 1000)
+            
+            # Extract agent information from submission or use defaults
+            agent_id = submission_data.get("agent_id", f"agent_{int(time.time())}")
+            agent_name = submission_data.get("agent_name", "Unknown Agent")
+            
+            # Create evaluation result for metrics
+            eval_result = EvaluationResult(
+                agent_id=agent_id,
+                agent_name=agent_name,
+                task_level=green_agent.task_id.split("_")[-1],  # Extract level from task_id
+                task_id=green_agent.task_id,
+                final_score=results.get("final_score", 0.0),
+                details=results.get("details", {}),
+                timestamp=datetime.now(timezone.utc),
+                submission_data=submission_data,
+                evaluation_time_ms=evaluation_time_ms,
+                platform="AgentBeats"
+            )
+            
+            # Record the evaluation in metrics system
+            try:
+                metrics_collector.record_evaluation(eval_result)
+            except Exception as e:
+                print(f"Warning: Failed to record metrics: {e}")
             
             return results
             

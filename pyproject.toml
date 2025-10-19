@@ -28,7 +28,14 @@ dependencies = [
     "cadquery", 
     
     # AgentBeats SDK
-    "agentbeats"
+    "agentbeats",
+    
+    # Web API and Metrics
+    "fastapi",
+    "uvicorn",
+    "redis",
+    "sqlalchemy",
+    "psycopg2-binary"
 ]
 
 [project.optional-dependencies]

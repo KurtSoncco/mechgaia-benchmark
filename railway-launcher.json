@@ -1,0 +1,12 @@
+{
+    "build": {
+        "builder": "DOCKERFILE",
+        "dockerfilePath": "Dockerfile.launcher"
+    },
+    "deploy": {
+        "startCommand": "python launcher.py",
+        "healthcheckPath": "/health",
+        "healthcheckTimeout": 60,
+        "restartPolicyType": "ON_FAILURE"
+    }
+}

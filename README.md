@@ -22,7 +22,7 @@ This project uses `uv` for fast and efficient package management.
 
 1.  **Clone the repository:**
     ```bash
-    git clone [https://github.com/your-username/mechgaia-benchmark.git](https://github.com/your-username/mechgaia-benchmark.git)
+    git clone [https://github.com/KurtSoncco/mechgaia-benchmark.git](https://github.com/KurtSoncco/mechgaia-benchmark.git)
     cd mechgaia-benchmark
     ```
 

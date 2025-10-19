@@ -39,7 +39,7 @@ class Level3PlateOptimizationTask(MechGAIABaseGreenAgent):
         modified_metrics = cad_tool.run_analysis(submitted_file, load_conditions)
 
         # 3. Check deflection constraint
-        deflection_reduction = (baseline_metrics["max_deflection"] - modified_metrics["max_deflection"]) / baseline_metrics["max_deflection"]
+        deflection_reduction = (baseline_metrics["max_deflection_mm"] - modified_metrics["max_deflection_mm"]) / baseline_metrics["max_deflection_mm"]
         if deflection_reduction >= self.prompt["constraints"]["max_deflection_reduction"]:
             score_details["deflection_constraint_met"] = 1.0
 

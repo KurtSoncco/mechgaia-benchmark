@@ -1,0 +1,4 @@
+{
+    "answer_pa": 31830000,
+    "reasoning_code": "# Calculate maximum bending stress in a steel rod\n# Given: L = 1m, d = 20mm, P = 100N\n\n# Convert diameter to meters\nd = 20e-3  # 20mm in meters\nL = 1.0    # 1 meter\nP = 100    # 100 Newtons\n\n# Calculate moment of inertia for circular cross-section\n# I = pi * d^4 / 64\nI = math.pi * d**4 / 64\n\n# Calculate maximum moment (at center)\n# M = P * L / 4\nM = P * L / 4\n\n# Calculate distance from neutral axis to outer fiber\nc = d / 2\n\n# Calculate maximum bending stress\n# sigma = M * c / I\nsigma = M * c / I\n\n# Store result\nresult = sigma"
+}

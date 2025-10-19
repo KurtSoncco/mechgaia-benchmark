@@ -42,10 +42,176 @@ This project uses `uv` for fast and efficient package management.
 
 ## 🏁 How to Run the Benchmark
 
-*(This section is a placeholder for when the benchmark runner is implemented).*
+The MechGAIA benchmark is now fully implemented and ready to use! Here's how to evaluate white agents:
 
-To evaluate a "white" agent, you will use the primary benchmark script. The script will orchestrate the Green Agent to present a task to the white agent and score its submitted solution.
+### Quick Start
+
+1. **Activate the virtual environment:**
+   ```bash
+   source .venv/bin/activate
+   ```
+
+2. **Run a benchmark evaluation:**
+   ```bash
+   # Level 1: Stress Analysis Task
+   python run_benchmark.py --task-level 1 --white-agent-path examples/submissions/example_level1.json
+   
+   # Level 2: Shaft Design Task
+   python run_benchmark.py --task-level 2 --white-agent-path examples/submissions/example_level2.json
+   
+   # Level 3: Plate Optimization Task
+   python run_benchmark.py --task-level 3 --white-agent-path examples/submissions/example_level3.json
+   ```
+
+### Task Levels
+
+#### Level 1: Stress Analysis
+- **Objective**: Calculate maximum bending stress in a steel rod
+- **Skills Tested**: Basic mechanics, numerical computation
+- **Submission Format**: JSON with numerical answer and Python code
+
+#### Level 2: Shaft Design
+- **Objective**: Select material and calculate minimum shaft diameter
+- **Skills Tested**: Material selection, power transmission, constraint satisfaction
+- **Submission Format**: JSON with material choice and diameter calculation
+
+#### Level 3: Plate Optimization
+- **Objective**: Optimize mounting plate geometry for reduced deflection
+- **Skills Tested**: CAD modification, structural optimization, multi-objective design
+- **Submission Format**: JSON with path to modified CAD file
+
+### Creating Your Own White Agent
+
+1. **Study the task requirements** by examining the example submissions in `examples/submissions/`
+2. **Create your submission** following the required JSON format
+3. **Run the evaluation** using the benchmark runner
+
+### Advanced Usage
 
 ```bash
-# Example command (to be implemented)
-python run_benchmark.py --task-level 1 --white-agent-path path/to/your/agent.py
+# Save results to a file
+python run_benchmark.py --task-level 1 --white-agent-path your_agent.json --output results.json
+
+# Enable verbose output
+python run_benchmark.py --task-level 1 --white-agent-path your_agent.json --verbose
+
+# Get help
+python run_benchmark.py --help
+```
+
+### Running Tests
+
+```bash
+# Run all tests
+pytest tests/ -v
+
+# Run specific test file
+pytest tests/test_mechgaia.py -v
+
+# Run with coverage
+pytest tests/ --cov=agents --cov=utils
+```
+
+---
+
+## 🤖 AgentBeats Platform Integration
+
+The MechGAIA green agent is fully integrated with the AgentBeats SDK for platform deployment and evaluation.
+
+### AgentBeats Features
+
+- **Platform Integration**: Full AgentBeats SDK compatibility
+- **Automated Deployment**: Docker and deployment scripts included
+- **Configuration Management**: Flexible configuration system
+- **Health Monitoring**: Built-in health checks and monitoring
+- **Multi-Level Support**: All three benchmark levels supported
+
+### AgentBeats Usage
+
+#### 1. **Agent Information**
+```bash
+# Get agent information
+python agentbeats_main.py info
+```
+
+#### 2. **Direct Evaluation**
+```bash
+# Evaluate submissions directly
+python agentbeats_main.py evaluate examples/submissions/example_level1.json 1
+python agentbeats_main.py evaluate examples/submissions/example_level2.json 2
+python agentbeats_main.py evaluate examples/submissions/example_level3.json 3
+```
+
+#### 3. **Platform Deployment**
+```bash
+# Deploy to AgentBeats platform
+agentbeats deploy \
+    --agent-card agent_card.toml \
+    --entry-point agentbeats_main.py \
+    --name "MechGAIA-Green-Agent" \
+    --version "0.1.0"
+```
+
+#### 4. **Docker Deployment**
+```bash
+# Build and run with Docker
+docker build -t mechgaia-green-agent .
+docker run -p 8080:8080 mechgaia-green-agent
+
+# Or use Docker Compose
+docker-compose up -d
+```
+
+#### 5. **Deployment Scripts**
+```bash
+# Full deployment preparation
+./scripts/deploy.sh all
+
+# Deploy to AgentBeats platform
+./scripts/deploy.sh deploy
+```
+
+### AgentBeats Configuration
+
+The agent can be configured using environment variables:
+
+```bash
+export AGENTBEATS_HOST=localhost
+export AGENTBEATS_PORT=8080
+export LAUNCHER_HOST=localhost
+export LAUNCHER_PORT=8081
+```
+
+### AgentBeats State Format
+
+The agent expects state in the following format:
+
+```json
+{
+  "task_level": 1,
+  "white_agent_submission": {
+    "answer_pa": 31830000,
+    "reasoning_code": "result = 31830000"
+  },
+  "task_id": "mechgaia_level_1"
+}
+```
+
+### AgentBeats Response Format
+
+The agent returns evaluation results in this format:
+
+```json
+{
+  "final_score": 1.0,
+  "details": {
+    "numerical_accuracy": 1.0,
+    "code_executes": 1.0
+  },
+  "agent_name": "MechGAIA-Green-Agent",
+  "agent_version": "0.1.0",
+  "platform": "AgentBeats",
+  "task_level": 1,
+  "task_id": "mechgaia_level_1"
+}
+```

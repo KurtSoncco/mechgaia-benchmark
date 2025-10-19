@@ -1,0 +1,41 @@
+[project]
+name = "mechgaia-benchmark"
+version = "0.1.0"
+description = "MechGAIA: A Green Agent and Benchmark for Evaluating Mechanical Engineering Design AI Agents."
+authors = [
+    { name = "Kurt Walter Soncco Sinchi", email = "kurtwal98@berkeley.edu" },
+]
+license = { text = "MIT" }
+readme = "README.md"
+requires-python = ">=3.10"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Topic :: Scientific/Engineering",
+    "Intended Audience :: Science/Research",
+]
+
+# Core dependencies for running the benchmark
+dependencies = [
+    "pandas",
+    "numpy",
+    "sympy", 
+    
+    # CAD Integration
+    "cadquery", 
+    
+    # AgentBeats SDK
+    "agentbeats"
+]
+
+[project.optional-dependencies]
+# Dependencies for running tests or development tasks
+dev = [
+    "pytest",
+    "ruff",
+]
+
+
+[tool.uv]
+# This section can be used for uv-specific configurations if needed in the future.

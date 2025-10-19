@@ -1,5 +1,7 @@
 # utils/safe_runner.py
 import traceback
+import numpy as np
+import math
 
 def execute_code(code_string: str, controlled_scope: dict = None) -> dict:
     """
@@ -18,11 +20,15 @@ def execute_code(code_string: str, controlled_scope: dict = None) -> dict:
             "__builtins__": {
                 "print": print, "range": range, "abs": abs, "round": round,
                 "len": len, "min": min, "max": max, "sum": sum,
-                "float": float, "int": int, "str": str, "list": list, "dict": dict
+                "float": float, "int": int, "str": str, "list": list, "dict": dict,
+                "open": None, "file": None  # Block file operations but allow __import__
             },
-            # You can add safe libraries like numpy or math here
-            # "np": __import__('numpy'),
-            "math": __import__('math')
+            # Safe libraries for engineering calculations
+            "np": np,
+            "numpy": np,
+            "math": math,
+            "pi": math.pi,
+            "e": math.e
         }
 
     try:

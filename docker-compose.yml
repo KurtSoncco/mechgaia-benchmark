@@ -1,0 +1,40 @@
+# Docker Compose configuration for MechGAIA Green Agent
+version: '3.8'
+
+services:
+  mechgaia-green-agent:
+    build: .
+    container_name: mechgaia-green-agent
+    ports:
+      - "8080:8080"
+    environment:
+      - AGENTBEATS_HOST=0.0.0.0
+      - AGENTBEATS_PORT=8080
+      - LAUNCHER_HOST=launcher
+      - LAUNCHER_PORT=8081
+      - PYTHONPATH=/app
+    volumes:
+      - ./logs:/app/logs
+      - ./tasks:/app/tasks
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import sys; sys.exit(0)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  launcher:
+    image: agentbeats/launcher:latest
+    container_name: mechgaia-launcher
+    ports:
+      - "8081:8081"
+    environment:
+      - LAUNCHER_PORT=8081
+    depends_on:
+      - mechgaia-green-agent
+    restart: unless-stopped
+
+networks:
+  default:
+    name: mechgaia-network

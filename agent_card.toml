@@ -1,0 +1,46 @@
+[agent]
+name = "MechGAIA-Green-Agent"
+description = "Green agent for MechGAIA benchmark evaluating mechanical engineering design AI agents"
+version = "0.1.0"
+author = "Kurt Walter Soncco Sinchi"
+email = "kurtwal98@berkeley.edu"
+
+[agent.capabilities]
+tools = [
+    "stress_analysis",
+    "shaft_design", 
+    "plate_optimization",
+    "cad_analysis",
+    "material_selection",
+    "numerical_verification"
+]
+
+[agent.benchmark]
+name = "MechGAIA"
+domain = "mechanical_engineering"
+levels = 3
+description = "Mechanical engineering design and analysis benchmark"
+
+[agent.tasks]
+level1 = "stress_analysis"
+level2 = "shaft_design" 
+level3 = "plate_optimization"
+
+[agent.evaluation]
+criteria = [
+    "numerical_accuracy",
+    "constraint_satisfaction", 
+    "code_execution",
+    "material_selection",
+    "design_optimization"
+]
+
+[agent.environment]
+python_version = ">=3.10"
+dependencies = [
+    "pandas",
+    "numpy", 
+    "sympy",
+    "cadquery",
+    "agentbeats"
+]

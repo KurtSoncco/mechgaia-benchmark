@@ -10,7 +10,7 @@ from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
 
-from metrics_system import EvaluationResult, metrics_collector
+from metrics_system import EvaluationResult, get_metrics_collector
 
 # Initialize FastAPI app
 app = FastAPI(
@@ -68,7 +68,7 @@ async def get_leaderboard(
         List of leaderboard entries
     """
     try:
-        leaderboard = metrics_collector.get_leaderboard(limit=limit, sort_by=sort_by)
+        leaderboard = get_metrics_collector().get_leaderboard(limit=limit, sort_by=sort_by)
         return {
             "leaderboard": leaderboard,
             "total_entries": len(leaderboard),
@@ -91,7 +91,7 @@ async def get_agent_stats(agent_id: str):
         Agent statistics and evaluation history
     """
     try:
-        stats = metrics_collector.get_agent_stats(agent_id)
+        stats = get_metrics_collector().get_agent_stats(agent_id)
         if "error" in stats:
             raise HTTPException(status_code=404, detail=stats["error"])
         return stats
@@ -116,7 +116,7 @@ async def get_task_stats(task_level: int):
         raise HTTPException(status_code=400, detail="Task level must be 1, 2, or 3")
 
     try:
-        stats = metrics_collector.get_task_level_stats(task_level)
+        stats = get_metrics_collector().get_task_level_stats(task_level)
         return stats
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -149,7 +149,7 @@ async def record_evaluation(evaluation_data: dict):
         )
 
         # Record the evaluation
-        metrics_collector.record_evaluation(result)
+        get_metrics_collector().record_evaluation(result)
 
         return {
             "message": "Evaluation recorded successfully",

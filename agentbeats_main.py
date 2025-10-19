@@ -22,7 +22,7 @@ from datetime import datetime, timezone
 from agents.level1_stress_task import Level1StressTask
 from agents.level2_shaft_design_task import Level2ShaftDesignTask
 from agents.level3_plate_optimization_task import Level3PlateOptimizationTask
-from metrics_system import EvaluationResult, metrics_collector
+from metrics_system import EvaluationResult, get_metrics_collector
 
 
 class MechGAIAGreenAgent:
@@ -151,7 +151,7 @@ class MechGAIAGreenAgent:
 
             # Record the evaluation in metrics system
             try:
-                metrics_collector.record_evaluation(eval_result)
+                get_metrics_collector().record_evaluation(eval_result)
             except Exception as e:
                 print(f"Warning: Failed to record metrics: {e}")
 
@@ -198,39 +198,60 @@ def main():
     
     class HealthHandler(BaseHTTPRequestHandler):
         def do_GET(self):
-            if self.path == '/health':
-                self.send_response(200)
-                self.send_header('Content-type', 'application/json')
-                self.end_headers()
-                response = {
-                    "status": "healthy",
-                    "agent_name": agent.agent_name,
-                    "version": agent.version,
-                    "timestamp": datetime.now(timezone.utc).isoformat()
-                }
-                self.wfile.write(json.dumps(response).encode())
-            elif self.path == '/info':
-                self.send_response(200)
-                self.send_header('Content-type', 'application/json')
-                self.end_headers()
-                info = agent.get_agent_info()
-                self.wfile.write(json.dumps(info, indent=2).encode())
-            else:
-                self.send_response(404)
-                self.end_headers()
-                self.wfile.write(b'Not Found')
+            try:
+                if self.path == '/health':
+                    self.send_response(200)
+                    self.send_header('Content-type', 'application/json')
+                    self.end_headers()
+                    response = {
+                        "status": "healthy",
+                        "agent_name": agent.agent_name,
+                        "version": agent.version,
+                        "timestamp": datetime.now(timezone.utc).isoformat()
+                    }
+                    self.wfile.write(json.dumps(response).encode())
+                elif self.path == '/info':
+                    self.send_response(200)
+                    self.send_header('Content-type', 'application/json')
+                    self.end_headers()
+                    info = agent.get_agent_info()
+                    self.wfile.write(json.dumps(info, indent=2).encode())
+                else:
+                    self.send_response(404)
+                    self.end_headers()
+                    self.wfile.write(b'Not Found')
+            except Exception as e:
+                print(f"Health handler error: {e}")
+                try:
+                    self.send_response(500)
+                    self.end_headers()
+                    self.wfile.write(b'Internal Server Error')
+                except:
+                    pass
         
         def log_message(self, format, *args):
             pass  # Disable logging
     
     # Start health check server in background
     def start_health_server():
-        port = int(os.environ.get('AGENTBEATS_PORT', os.environ.get('PORT', 8080)))
-        server = HTTPServer(('0.0.0.0', port), HealthHandler)
-        server.serve_forever()
+        try:
+            port = int(os.environ.get('AGENTBEATS_PORT', os.environ.get('PORT', 8080)))
+            server = HTTPServer(('0.0.0.0', port), HealthHandler)
+            print(f"Health server starting on port {port}")
+            server.serve_forever()
+        except Exception as e:
+            print(f"Health server failed to start: {e}")
+            import traceback
+            traceback.print_exc()
     
     health_thread = threading.Thread(target=start_health_server, daemon=True)
     health_thread.start()
+    
+    # Give the health server time to start
+    time.sleep(2)
+    print("MechGAIA Green Agent started successfully")
+    print("Health endpoint available at: /health")
+    print("Agent info available at: /info")
 
     # Handle command line arguments for AgentBeats
     if len(sys.argv) > 1:

@@ -370,5 +370,12 @@ class MetricsCollector:
         }
 
 
-# Global metrics collector instance
-metrics_collector = MetricsCollector()
+# Global metrics collector instance (lazy initialization)
+metrics_collector = None
+
+def get_metrics_collector():
+    """Get the global metrics collector instance, creating it if needed."""
+    global metrics_collector
+    if metrics_collector is None:
+        metrics_collector = MetricsCollector()
+    return metrics_collector

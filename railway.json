@@ -1,0 +1,12 @@
+{
+    "build": {
+        "builder": "DOCKERFILE",
+        "dockerfilePath": "Dockerfile.uv"
+    },
+    "deploy": {
+        "startCommand": "uv run python agentbeats_main.py",
+        "healthcheckPath": "/health",
+        "healthcheckTimeout": 300,
+        "restartPolicyType": "ON_FAILURE"
+    }
+}

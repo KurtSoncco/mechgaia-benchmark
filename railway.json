@@ -6,7 +6,7 @@
     "deploy": {
         "startCommand": "uv run python agentbeats_main.py",
         "healthcheckPath": "/health",
-        "healthcheckTimeout": 300,
+        "healthcheckTimeout": 60,
         "restartPolicyType": "ON_FAILURE"
     }
 }

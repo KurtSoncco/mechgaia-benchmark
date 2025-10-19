@@ -7,6 +7,7 @@ It handles the communication with the AgentBeats SDK and orchestrates the evalua
 """
 
 import json
+import os
 import sys
 import time
 from pathlib import Path
@@ -189,6 +190,47 @@ def main():
     and processes incoming evaluation requests.
     """
     agent = MechGAIAGreenAgent()
+    
+    # Add health check endpoint for Railway/Render
+    import threading
+    from http.server import HTTPServer, BaseHTTPRequestHandler
+    import json
+    
+    class HealthHandler(BaseHTTPRequestHandler):
+        def do_GET(self):
+            if self.path == '/health':
+                self.send_response(200)
+                self.send_header('Content-type', 'application/json')
+                self.end_headers()
+                response = {
+                    "status": "healthy",
+                    "agent_name": agent.agent_name,
+                    "version": agent.version,
+                    "timestamp": datetime.now(timezone.utc).isoformat()
+                }
+                self.wfile.write(json.dumps(response).encode())
+            elif self.path == '/info':
+                self.send_response(200)
+                self.send_header('Content-type', 'application/json')
+                self.end_headers()
+                info = agent.get_agent_info()
+                self.wfile.write(json.dumps(info, indent=2).encode())
+            else:
+                self.send_response(404)
+                self.end_headers()
+                self.wfile.write(b'Not Found')
+        
+        def log_message(self, format, *args):
+            pass  # Disable logging
+    
+    # Start health check server in background
+    def start_health_server():
+        port = int(os.environ.get('PORT', 8080))
+        server = HTTPServer(('0.0.0.0', port), HealthHandler)
+        server.serve_forever()
+    
+    health_thread = threading.Thread(target=start_health_server, daemon=True)
+    health_thread.start()
 
     # Handle command line arguments for AgentBeats
     if len(sys.argv) > 1:

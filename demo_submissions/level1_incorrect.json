@@ -1,0 +1,4 @@
+{
+  "answer_pa": 15920000.0,
+  "reasoning_code": "\nimport math\n\n# Given parameters\nP = 100  # N (point load)\nL = 1.0  # m (length)\nd = 0.02  # m (diameter)\n\n# WRONG: Using L/2 instead of L/4 for moment\nM = (P * L) / 2  # Nm (This is wrong!)\n\n# Calculate moment of inertia\nI = (math.pi * d**4) / 64  # m^4\n\n# Calculate distance to neutral axis\nc = d / 2  # m\n\n# Calculate stress\nstress = (M * c) / I  # Pa\n\nprint(f\"Maximum bending stress: {stress:.2e} Pa\")\n"
+}

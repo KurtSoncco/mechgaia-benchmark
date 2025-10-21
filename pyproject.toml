@@ -35,7 +35,9 @@ dependencies = [
     "uvicorn",
     "redis",
     "sqlalchemy",
-    "psycopg2-binary"
+    "psycopg2-binary",
+    "flask",
+    "flask-cors",
 ]
 
 [project.optional-dependencies]

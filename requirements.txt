@@ -1,0 +1,14 @@
+# Flask for demo server
+Flask==2.3.3
+Flask-CORS==4.0.0
+
+# Numerical computing for MechGAIA benchmark
+numpy
+pandas
+
+# Additional dependencies for mechanical engineering calculations
+scipy
+sympy
+
+# Visualization (optional)
+matplotlib

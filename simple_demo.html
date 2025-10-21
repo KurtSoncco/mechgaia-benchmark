@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MechGAIA Benchmark - A2A Protocol Demo</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            color: white;
+        }
+
+        .header h1 {
+            font-size: 3rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+
+        .demo-section {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+
+        .section-title {
+            font-size: 1.8rem;
+            color: #4a5568;
+            margin-bottom: 20px;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 10px;
+        }
+
+        .agent-comparison {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .agent-card {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            border-left: 5px solid;
+        }
+
+        .white-agent {
+            border-left-color: #e53e3e;
+        }
+
+        .green-agent {
+            border-left-color: #38a169;
+        }
+
+        .agent-title {
+            font-size: 1.4rem;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .white-agent .agent-title {
+            color: #e53e3e;
+        }
+
+        .green-agent .agent-title {
+            color: #38a169;
+        }
+
+        .demo-controls {
+            text-align: center;
+            margin: 30px 0;
+        }
+
+        .btn {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 25px;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: transform 0.2s;
+            margin: 0 10px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .results-container {
+            display: none;
+            margin-top: 30px;
+        }
+
+        .test-result {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 15px;
+            border-left: 4px solid;
+        }
+
+        .test-result.pass {
+            border-left-color: #38a169;
+            background: #f0fff4;
+        }
+
+        .test-result.fail {
+            border-left-color: #e53e3e;
+            background: #fed7d7;
+        }
+
+        .test-result.warning {
+            border-left-color: #d69e2e;
+            background: #fefcbf;
+        }
+
+        .result-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .test-id {
+            font-weight: bold;
+            font-size: 1.1rem;
+        }
+
+        .status-badge {
+            padding: 5px 15px;
+            border-radius: 20px;
+            color: white;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .status-badge.pass {
+            background: #38a169;
+        }
+
+        .status-badge.fail {
+            background: #e53e3e;
+        }
+
+        .status-badge.warning {
+            background: #d69e2e;
+        }
+
+        .score-info {
+            display: flex;
+            gap: 20px;
+            margin: 10px 0;
+        }
+
+        .score-item {
+            background: white;
+            padding: 10px 15px;
+            border-radius: 5px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .summary-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 2.5rem;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            font-size: 1rem;
+            opacity: 0.9;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #667eea;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .task-info {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .task-card {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            border-left: 4px solid #667eea;
+        }
+
+        .task-title {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #4a5568;
+            margin-bottom: 10px;
+        }
+
+        .task-description {
+            color: #666;
+            margin-bottom: 10px;
+        }
+
+        .task-criteria {
+            font-size: 0.9rem;
+            color: #888;
+        }
+
+        @media (max-width: 768px) {
+            .agent-comparison {
+                grid-template-columns: 1fr;
+            }
+
+            .header h1 {
+                font-size: 2rem;
+            }
+
+            .summary-stats {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🤖 MechGAIA Benchmark</h1>
+            <p>A2A Protocol Demo - Mechanical Engineering Tasks</p>
+        </div>
+
+        <div class="demo-section">
+            <h2 class="section-title">Agent-to-Agent Protocol</h2>
+            <div class="agent-comparison">
+                <div class="agent-card white-agent">
+                    <div class="agent-title">⚪ White Agent</div>
+                    <p><strong>Role:</strong> Task Executor</p>
+                    <p><strong>Function:</strong> Solves mechanical engineering problems</p>
+                    <p><strong>Tasks:</strong></p>
+                    <ul>
+                        <li>Level 1: Stress calculations</li>
+                        <li>Level 2: Shaft design</li>
+                        <li>Level 3: CAD optimization</li>
+                    </ul>
+                </div>
+                <div class="agent-card green-agent">
+                    <div class="agent-title">🟢 Green Agent</div>
+                    <p><strong>Role:</strong> Quality Assurance</p>
+                    <p><strong>Function:</strong> Evaluates White Agent submissions</p>
+                    <p><strong>Evaluation:</strong></p>
+                    <ul>
+                        <li>Numerical accuracy checks</li>
+                        <li>Code execution validation</li>
+                        <li>Constraint satisfaction</li>
+                        <li>Material selection verification</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="demo-section">
+            <h2 class="section-title">Available Tasks</h2>
+            <div class="task-info" id="task-info">
+                <!-- Tasks will be loaded here -->
+            </div>
+        </div>
+
+        <div class="demo-section">
+            <h2 class="section-title">Live Demo</h2>
+            <div class="demo-controls">
+                <button class="btn" onclick="runDemo()">🚀 Run Green Agent Evaluation</button>
+                <button class="btn" onclick="resetDemo()">🔄 Reset Demo</button>
+            </div>
+
+            <div id="loading" class="loading" style="display: none;">
+                <div class="spinner"></div>
+                <p>Green Agent is evaluating White Agent submissions...</p>
+            </div>
+
+            <div id="results-container" class="results-container">
+                <div class="summary-stats" id="summary-stats"></div>
+                <div id="test-results"></div>
+            </div>
+        </div>
+
+        <div class="demo-section">
+            <h2 class="section-title">How A2A Protocol Works</h2>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px;">
+                <div style="text-align: center; padding: 20px;">
+                    <div style="font-size: 3rem; margin-bottom: 10px;">1️⃣</div>
+                    <h3>White Agent Submission</h3>
+                    <p>White Agent solves mechanical engineering problems and submits results in JSON format</p>
+                </div>
+                <div style="text-align: center; padding: 20px;">
+                    <div style="font-size: 3rem; margin-bottom: 10px;">2️⃣</div>
+                    <h3>Green Agent Evaluation</h3>
+                    <p>Green Agent validates submissions against success criteria and engineering constraints</p>
+                </div>
+                <div style="text-align: center; padding: 20px;">
+                    <div style="font-size: 3rem; margin-bottom: 10px;">3️⃣</div>
+                    <h3>Quality Assurance</h3>
+                    <p>Comprehensive scoring system ensures only high-quality solutions are accepted</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let demoData = {
+            results: [],
+            summary: {}
+        };
+
+        async function loadTasks() {
+            try {
+                const response = await fetch('/api/tasks');
+                const data = await response.json();
+
+                if (data.success) {
+                    const taskInfo = document.getElementById('task-info');
+                    taskInfo.innerHTML = data.tasks.map(task => `
+                        <div class="task-card">
+                            <div class="task-title">${task.name}</div>
+                            <div class="task-description">${task.description}</div>
+                            <div class="task-criteria">
+                                <strong>Evaluation:</strong> ${task.evaluation_criteria.join(', ')}
+                            </div>
+                        </div>
+                    `).join('');
+                }
+            } catch (error) {
+                console.error('Error loading tasks:', error);
+            }
+        }
+
+        async function runDemo() {
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('results-container').style.display = 'none';
+
+            try {
+                const response = await fetch('/api/run-demo', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+
+                if (data.success) {
+                    demoData.results = data.results;
+                    demoData.summary = data.summary;
+
+                    document.getElementById('loading').style.display = 'none';
+                    document.getElementById('results-container').style.display = 'block';
+                    displayResults();
+                } else {
+                    throw new Error(data.error || 'Demo failed');
+                }
+
+            } catch (error) {
+                console.error('Demo error:', error);
+                document.getElementById('loading').style.display = 'none';
+                alert('Demo failed: ' + error.message + '\n\nMake sure the demo server is running (python simple_demo_server.py)');
+            }
+        }
+
+        function displayResults() {
+            displaySummaryStats();
+            displayTestResults();
+        }
+
+        function displaySummaryStats() {
+            const summary = demoData.summary;
+
+            const summaryHTML = `
+                <div class="stat-card">
+                    <div class="stat-number">${summary.total_tests}</div>
+                    <div class="stat-label">Total Tests</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">${summary.passed}</div>
+                    <div class="stat-label">Passed</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">${summary.failed}</div>
+                    <div class="stat-label">Failed</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">${(summary.average_score * 100).toFixed(0)}%</div>
+                    <div class="stat-label">Avg Score</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">${(summary.pass_rate * 100).toFixed(0)}%</div>
+                    <div class="stat-label">Pass Rate</div>
+                </div>
+            `;
+
+            document.getElementById('summary-stats').innerHTML = summaryHTML;
+        }
+
+        function displayTestResults() {
+            const results = demoData.results;
+
+            const resultsHTML = results.map(result => {
+                const finalScore = result.result.final_score || 0;
+                const status = finalScore >= 0.7 ? 'pass' : 'fail';
+                const statusEmoji = status === 'pass' ? '✅' : '❌';
+
+                return `
+                    <div class="test-result ${status}">
+                        <div class="result-header">
+                            <div class="test-id">${statusEmoji} ${result.task_name} - ${result.submission_type}</div>
+                            <div class="status-badge ${status}">${status}</div>
+                        </div>
+                        <div style="margin-bottom: 10px;">
+                            <strong>Description:</strong> ${result.description}
+                        </div>
+                        <div class="score-info">
+                            <div class="score-item">
+                                <strong>Final Score:</strong> ${(finalScore * 100).toFixed(0)}%
+                            </div>
+                        </div>
+                        <div style="margin-top: 10px;">
+                            <strong>Evaluation Details:</strong>
+                            <pre style="background: white; padding: 10px; border-radius: 5px; margin-top: 5px; font-size: 0.9rem;">${JSON.stringify(result.result.details, null, 2)}</pre>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            document.getElementById('test-results').innerHTML = resultsHTML;
+        }
+
+        function resetDemo() {
+            document.getElementById('results-container').style.display = 'none';
+            document.getElementById('loading').style.display = 'none';
+        }
+
+        // Initialize the demo
+        document.addEventListener('DOMContentLoaded', function () {
+            loadTasks();
+            console.log('Green Agent Demo initialized');
+        });
+    </script>
+</body>
+
+</html>

@@ -1,7 +1,7 @@
 # MechGAIA: A Green Agent and Benchmark for Mechanical Engineering Design
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-![Python Version](https://img.shields.io/badge/python-3.10%2B-blue.svg)
+![Python Version](https://img.shields.io/badge/python-3.11%2B-blue.svg)
 
 MechGAIA is a novel benchmark designed to assess the capabilities of AI agents in solving mechanical engineering design and analysis problems<sup>[6]</sup>. It extends the general reasoning and tool-use evaluation concepts from benchmarks like GAIA into the specialized domain of engineering[cite: 4, 41].
 
@@ -13,12 +13,16 @@ This repository contains the implementation of the **MechGAIA Green Agent**, whi
 -   **Multi-Modal Inputs**: Agents are evaluated on their ability to interpret problems from text, diagrams, and CAD files[cite: 8, 43].
 -   **Programmatic CAD Evaluation**: Integrates with **CadQuery** to assess agents on their ability to programmatically generate and modify 3D models to meet design constraints<sup>[24]</sup>.
 -   **Automated Verification**: The Green Agent uses a sandboxed environment to run agent-submitted code, parse results, and assign scores based on numerical accuracy, constraint satisfaction, and physical feasibility[cite: 9, 74].
+-   **LLM Provider Abstraction**: Plug-and-play support for OpenAI, Anthropic (Claude), Deepseek, local Ollama models, and any OpenAI-compatible API via the new `llm_providers/` package.
+-   **Model Context Protocol (MCP)**: Built-in MCP server and client so LLMs can call MechGAIA tools safely.
+-   **Agent-to-Agent (A2A) Communication**: Reusable protocol plus HTTP/WebSocket transports for orchestrating multi-agent workflows.
+-   **Local LLM Leaderboard**: `test_ollama_leaderboard.py` benchmarks small Ollama models and tracks scores without API keys.
 
 ---
 
 ## 🛠️ Installation
 
-This project uses `uv` for fast and efficient package management.
+This project uses [`uv`](https://github.com/astral-sh/uv) for fast, reproducible Python environments.
 
 1.  **Clone the repository:**
     ```bash
@@ -26,16 +30,17 @@ This project uses `uv` for fast and efficient package management.
     cd mechgaia-benchmark
     ```
 
-2.  **Create and activate a virtual environment:**
+2.  **Create and activate a virtual environment (Python 3.11+):**
     ```bash
-    pyenv local 3.11
+    pyenv install 3.11.9       # or use your preferred Python 3.11 build
+    pyenv local 3.11.9
     uv venv
     source .venv/bin/activate
     ```
 
-3.  **Install all dependencies:**
+3.  **Install all dependencies (including dev extras):**
     ```bash
-    uv sync -extra dev
+    uv sync --extra dev
     ```
 
 ---
@@ -220,3 +225,88 @@ The agent returns evaluation results in this format:
 
 [6] Mechanical Engineering Principles, Example Source.
 [24] CadQuery Documentation.
+
+---
+
+## 🧠 LLM Provider Quick Start
+
+The `llm_providers/` module exposes a unified interface that works with hosted APIs **and** local models.
+
+```bash
+# Install optional SDKs as needed (only if you use those providers)
+uv pip install openai anthropic
+```
+
+```python
+from llm_providers import get_llm_provider, LLMMessage, MessageRole
+
+provider = get_llm_provider("ollama", model="phi", base_url="http://localhost:11434")
+messages = [LLMMessage(role=MessageRole.USER, content="What is 2+2?")]
+response = provider.chat(messages)
+print(response.content)
+```
+
+More examples live in `examples/llm_usage_example.py` and the comprehensive [`QUICKSTART.md`](QUICKSTART.md).
+
+---
+
+## 🧰 Model Context Protocol (MCP)
+
+The new `mcp/` package lets you expose MechGAIA tools to any MCP-compliant LLM (OpenAI GPTs, Claude, etc.).
+
+Key components:
+- `mcp/server.py`: register tools/resources and expose them over JSON-RPC
+- `mcp/client.py`: connect to MCP servers from the green agent or scripts
+- `MCP_A2A_INTEGRATION.md`: full protocol guide with examples
+
+Use [`examples/mcp_example.py`](examples/mcp_example.py) to spin up a sample MCP server/client pair.
+
+---
+
+## 🔄 Agent-to-Agent (A2A) Protocol
+
+Need agents to coordinate? The `a2a/` package adds a lightweight protocol plus transport implementations:
+
+- `a2a/agent.py`: base agent with message routing + action handlers
+- `a2a/transport.py`: HTTP & WebSocket transports (async, based on `aiohttp`)
+- `a2a/broker.py`: discovery/routing broker
+
+See [`examples/a2a_example.py`](examples/a2a_example.py) for runnable demos.
+
+---
+
+## 🧪 Local LLM Leaderboard (Ollama)
+
+Prefer offline testing? The new `test_ollama_leaderboard.py` script:
+
+1. Generates submissions with local Ollama models (phi, llama2, mistral, etc.)
+2. Evaluates them with the MechGAIA green agent
+3. Tracks scores in `ollama_leaderboard.json`
+
+```bash
+# Start Ollama
+docker run -d -v ollama:/root/.ollama -p 11434:11434 --name ollama ollama/ollama
+ollama pull phi   # small model (~1.6GB)
+
+# Run tests
+uv run python test_ollama_leaderboard.py --models phi --task-level 1
+uv run python test_ollama_leaderboard.py --show-leaderboard
+```
+
+Full instructions live in [`OLLAMA_TESTING.md`](OLLAMA_TESTING.md).
+
+---
+
+## 📄 Submission Checklist & Guides
+
+- [`AGENTBEATS_SUBMISSION_CHECKLIST.md`](AGENTBEATS_SUBMISSION_CHECKLIST.md): Step-by-step prep
+- [`SUBMISSION_QUICKSTART.md`](SUBMISSION_QUICKSTART.md): 5-minute version
+- [`AGENTBEATS_SETUP_COMPLETE.md`](AGENTBEATS_SETUP_COMPLETE.md): What’s already configured
+
+Use the helper script to stage all essential files before committing:
+
+```bash
+./scripts/prepare_commit.sh
+git commit -m "Add LLM providers, MCP, A2A support and Ollama testing"
+git push
+```

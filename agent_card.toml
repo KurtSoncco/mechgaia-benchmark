@@ -4,6 +4,8 @@ description = "Green agent for MechGAIA benchmark evaluating mechanical engineer
 version = "0.1.0"
 author = "Kurt Walter Soncco Sinchi"
 email = "kurtwal98@berkeley.edu"
+url = "http://localhost:8080"  # Update with your deployment URL
+entrypoint = "agentbeats_main.py"
 
 [agent.capabilities]
 tools = [
@@ -36,11 +38,18 @@ criteria = [
 ]
 
 [agent.environment]
-python_version = ">=3.10"
+python_version = ">=3.11"
 dependencies = [
     "pandas",
     "numpy", 
     "sympy",
     "cadquery",
     "agentbeats"
+    # Note: earthshaker is optional and requires Python >=3.13
 ]
+
+[agent.deployment]
+# Update these URLs when deploying
+agent_url = "http://localhost:8080"
+launcher_url = "http://localhost:8081"
+healthcheck = "/health"

@@ -554,8 +554,28 @@ def main():
             print(json.dumps(result, indent=2))
             return
 
-    # Interactive mode for AgentBeats platform
+    # Check if running in web service mode (no stdin available)
+    # This happens in Docker containers, Render, etc.
+    import select
+    stdin_available = select.select([sys.stdin], [], [], 0.0)[0]
+    
+    if not stdin_available and not sys.stdin.isatty():
+        # Web service mode - just keep the health server running
+        logger.info("Running in web service mode (no stdin detected)")
+        logger.info("Health server is active and ready to handle requests")
+        try:
+            # Keep the process alive
+            while True:
+                time.sleep(3600)  # Sleep for 1 hour, wake up to check
+        except KeyboardInterrupt:
+            logger.info("Shutdown requested by user")
+        finally:
+            logger.info("MechGAIA Green Agent shutting down")
+        return
+
+    # Interactive mode for AgentBeats platform (stdin available)
     try:
+        logger.info("Running in interactive mode (stdin detected)")
         logger.info("Waiting for AgentBeats platform input...")
         while True:
             # Read input from AgentBeats platform

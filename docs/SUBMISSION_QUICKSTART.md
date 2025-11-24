@@ -22,11 +22,11 @@ uv run python agentbeats_main.py evaluate examples/submissions/example_level1.js
 docker build -f Dockerfile.uv -t mechgaia-green-agent .
 docker run -p 8080:8080 mechgaia-green-agent
 
-#   Option B: Railway/Render
+#   Option B: Render (recommended)
 #   - Push to GitHub
-#   - Connect to Railway/Render
-#   - Set environment variables
-#   - Deploy
+#   - Connect to Render
+#   - Render auto-deploys from render.yaml
+#   - Get your URL
 
 # 5. Register on agentbeats.org
 #   - Log in

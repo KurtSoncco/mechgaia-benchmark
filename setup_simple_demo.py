@@ -35,16 +35,17 @@ def test_agents():
     try:
         # Test Level 1 Stress Task
         from agents.level1_stress_task import Level1StressTask
+        from green_agents.level1_stress_task import Level1StressTask
         agent1 = Level1StressTask("test_level1")
         print("   ✅ Level 1 Stress Task working")
         
         # Test Level 2 Shaft Design Task
-        from agents.level2_shaft_design_task import Level2ShaftDesignTask
+        from green_agents.level2_shaft_design_task import Level2ShaftDesignTask
         agent2 = Level2ShaftDesignTask("test_level2")
         print("   ✅ Level 2 Shaft Design Task working")
         
         # Test Level 3 Plate Optimization Task
-        from agents.level3_plate_optimization_task import Level3PlateOptimizationTask
+        from green_agents.level3_plate_optimization_task import Level3PlateOptimizationTask
         agent3 = Level3PlateOptimizationTask("test_level3")
         print("   ✅ Level 3 Plate Optimization Task working")
         

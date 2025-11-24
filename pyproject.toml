@@ -29,7 +29,7 @@ dependencies = [
     
     # AgentBeats SDK
     "agentbeats",
-    # Note: earthshaker requires Python >=3.13, so it's in optional-dependencies
+    "earthshaker",  # Required for submission
     # Install with: uv sync --extra agentbeats-runtime
     
     # Web API and Metrics

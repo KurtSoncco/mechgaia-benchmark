@@ -17,9 +17,9 @@ from typing import Optional
 project_root = Path(__file__).parent
 sys.path.insert(0, str(project_root))
 
-from agents.level1_stress_task import Level1StressTask
-from agents.level2_shaft_design_task import Level2ShaftDesignTask
-from agents.level3_plate_optimization_task import Level3PlateOptimizationTask
+from green_agents.level1_stress_task import Level1StressTask
+from green_agents.level2_shaft_design_task import Level2ShaftDesignTask
+from green_agents.level3_plate_optimization_task import Level3PlateOptimizationTask
 
 
 def load_white_agent(agent_path: str) -> dict:

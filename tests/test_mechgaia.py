@@ -15,9 +15,9 @@ import sys
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
-from agents.level1_stress_task import Level1StressTask
-from agents.level2_shaft_design_task import Level2ShaftDesignTask
-from agents.level3_plate_optimization_task import Level3PlateOptimizationTask
+from green_agents.level1_stress_task import Level1StressTask
+from green_agents.level2_shaft_design_task import Level2ShaftDesignTask
+from green_agents.level3_plate_optimization_task import Level3PlateOptimizationTask
 from utils.safe_runner import execute_code
 from utils.cad_verifier import CADAnalysisTool
 

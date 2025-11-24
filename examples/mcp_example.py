@@ -15,7 +15,7 @@ import threading
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
-from mcp import MCPServer, MCPTool, MCPClient
+from local_mcp import MCPServer, MCPTool, MCPClient
 from llm_providers import get_llm_provider, LLMMessage, MessageRole
 
 

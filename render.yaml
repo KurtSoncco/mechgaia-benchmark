@@ -1,0 +1,14 @@
+services:
+  - type: web
+    name: mechgaia-green-agent
+    env: docker
+    dockerfilePath: ./Dockerfile.uv
+    envVars:
+      - key: HOST
+        value: 0.0.0.0
+      - key: AGENT_PORT
+        value: 8080
+      - key: PYTHON_VERSION
+        value: "3.11"
+    healthCheckPath: /health
+    autoDeploy: true

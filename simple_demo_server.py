@@ -10,9 +10,9 @@ import os
 from datetime import datetime
 
 # Import the actual agents
-from agents.level1_stress_task import Level1StressTask
-from agents.level2_shaft_design_task import Level2ShaftDesignTask
-from agents.level3_plate_optimization_task import Level3PlateOptimizationTask
+from green_agents.level1_stress_task import Level1StressTask
+from green_agents.level2_shaft_design_task import Level2ShaftDesignTask
+from green_agents.level3_plate_optimization_task import Level3PlateOptimizationTask
 from demo_white_agent import DemoWhiteAgent
 
 app = Flask(__name__)

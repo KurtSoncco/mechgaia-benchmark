@@ -554,15 +554,26 @@ def main():
             print(json.dumps(result, indent=2))
             return
 
-    # Check if running in web service mode (no stdin available)
-    # This happens in Docker containers, Render, etc.
-    import select
-    stdin_available = select.select([sys.stdin], [], [], 0.0)[0]
+    # Determine run mode:
+    # - Web service mode: Run as HTTP server only (Render, Docker, production)
+    # - Interactive mode: Read from stdin (AgentBeats platform, local testing)
     
-    if not stdin_available and not sys.stdin.isatty():
+    # Check for explicit web service mode via environment variable
+    web_service_mode = os.environ.get('WEB_SERVICE_MODE', 'true').lower() == 'true'
+    
+    # Also check if we're in a container or cloud environment
+    is_containerized = (
+        os.path.exists('/.dockerenv') or 
+        os.environ.get('RENDER') or 
+        os.environ.get('RAILWAY_ENVIRONMENT') or
+        os.environ.get('KUBERNETES_SERVICE_HOST')
+    )
+    
+    if web_service_mode or is_containerized:
         # Web service mode - just keep the health server running
-        logger.info("Running in web service mode (no stdin detected)")
+        logger.info("Running in web service mode")
         logger.info("Health server is active and ready to handle requests")
+        logger.info("Set WEB_SERVICE_MODE=false to enable interactive mode")
         try:
             # Keep the process alive
             while True:
@@ -575,7 +586,7 @@ def main():
 
     # Interactive mode for AgentBeats platform (stdin available)
     try:
-        logger.info("Running in interactive mode (stdin detected)")
+        logger.info("Running in interactive mode (stdin enabled)")
         logger.info("Waiting for AgentBeats platform input...")
         while True:
             # Read input from AgentBeats platform

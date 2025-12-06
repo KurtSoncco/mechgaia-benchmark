@@ -7,9 +7,76 @@ except ImportError:
     CAD_VERIFIER_AVAILABLE = False
 
 from .green_agent_base import MechGAIABaseGreenAgent
+from typing import Optional
 
 
 class Level3PlateOptimizationTask(MechGAIABaseGreenAgent):
+    
+    # Reference solution for reasoning evaluation
+    REFERENCE_REASONING = """
+Mounting plate optimization requires a systematic approach to reduce deflection 
+while managing weight constraints.
+
+Given:
+- Initial plate loaded with 1 kN off-axis force
+- Objective: reduce deflection by ≥25%
+- Constraint: mass increase ≤15%
+
+Step 1: Analyze the baseline deflection
+Using finite element analysis on the initial geometry, identify:
+- Maximum deflection location and magnitude
+- Stress concentration zones
+- Load path and stiffness distribution
+- Critical failure modes
+
+Step 2: Identify optimization strategies
+Several approaches can reduce deflection:
+a) Increase material thickness in high-stress areas (local reinforcement)
+b) Add ribs or stiffeners perpendicular to loading direction
+c) Modify geometry to improve load distribution
+d) Use material with higher stiffness if mass allows
+e) Combine multiple approaches for efficiency
+
+Step 3: Evaluate design modifications
+For each proposed change, consider:
+- Deflection reduction effectiveness
+- Mass impact
+- Manufacturability
+- Stress concentration effects
+
+Step 4: Parametric optimization
+Perform iterative design cycles:
+- Modify geometry parameters systematically
+- Run FEA analysis to quantify deflection change
+- Track mass increase
+- Select design that meets both constraints with margin
+
+Step 5: Validate the solution
+Final design verification:
+- Ensure 25% deflection reduction is achieved
+- Confirm mass increase doesn't exceed 15%
+- Check for stress concentration or failure modes
+- Verify structural integrity under load
+
+The recommended approach is to add stiffening ribs in the load transfer region,
+which provides high deflection reduction per unit mass increase. Combined with
+selective thickness increases, this typically achieves the targets efficiently.
+    """
+    
+    # Key concepts for reasoning evaluation
+    KEY_CONCEPTS = [
+        "finite element analysis",
+        "deflection reduction",
+        "stress concentration",
+        "optimization",
+        "parametric study",
+        "design iteration",
+        "load path",
+        "stiffness improvement",
+        "mass constraint",
+        "design trade-off"
+    ]
+    
     def setup_task(self):
         """Provides the initial CAD file and constraints."""
         prompt = {
@@ -26,6 +93,14 @@ class Level3PlateOptimizationTask(MechGAIABaseGreenAgent):
             },
         }
         return prompt
+    
+    def get_reference_reasoning(self) -> Optional[str]:
+        """Returns the reference reasoning for this task."""
+        return self.REFERENCE_REASONING
+    
+    def get_key_concepts(self) -> list[str]:
+        """Returns key concepts to evaluate in the agent's reasoning."""
+        return self.KEY_CONCEPTS
 
     def verify_submission(self, submission_data):
         """Runs CAD analysis on both files and checks constraints."""

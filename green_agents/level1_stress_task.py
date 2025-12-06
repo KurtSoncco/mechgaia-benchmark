@@ -1,5 +1,6 @@
 # /agents/level1_stress_task.py
 from .green_agent_base import MechGAIABaseGreenAgent
+from typing import Optional
 
 try:
     from utils.safe_runner import execute_code # A utility for safe code execution
@@ -9,6 +10,48 @@ except ImportError:
     SAFE_RUNNER_AVAILABLE = False
 
 class Level1StressTask(MechGAIABaseGreenAgent):
+
+    # Reference solution for reasoning evaluation
+    REFERENCE_REASONING = """
+To solve this bending stress problem, I need to apply beam theory and the flexure formula.
+
+Given:
+- Length L = 1 m
+- Diameter d = 20 mm = 0.02 m
+- Point load P = 100 N at center
+- Both ends supported (simply supported beam)
+
+Step 1: Determine the bending moment
+For a simply supported beam with a point load at midspan:
+M_max = (P * L) / 4 = (100 N * 1 m) / 4 = 25 Nm
+
+Step 2: Calculate the moment of inertia
+For a circular cross-section: I = (π * d^4) / 64
+I = (3.14159 * (0.02)^4) / 64 = 7.854 × 10^-9 m^4
+
+Step 3: Determine distance from neutral axis
+For a circular section, the maximum stress occurs at the extreme fiber:
+c = d/2 = 0.01 m (distance to extreme fiber)
+
+Step 4: Apply the flexure formula
+The bending stress is given by: σ = (M * c) / I
+σ_max = (25 Nm * 0.01 m) / (7.854 × 10^-9 m^4) = 31.83 × 10^6 Pa = 31.83 MPa
+
+This uses fundamental mechanics of materials principles and assumes elastic deformation,
+which is valid for typical steel under these loads.
+    """
+    
+    # Key concepts for reasoning evaluation
+    KEY_CONCEPTS = [
+        "bending stress",
+        "moment of inertia",
+        "flexure formula",
+        "simply supported beam",
+        "neutral axis",
+        "extreme fiber",
+        "circular cross-section",
+        "point load at midspan"
+    ]
 
     def setup_task(self):
         """Defines the prompt for the white agent."""
@@ -22,6 +65,14 @@ class Level1StressTask(MechGAIABaseGreenAgent):
             }
         }
         return prompt
+    
+    def get_reference_reasoning(self) -> Optional[str]:
+        """Returns the reference reasoning for this task."""
+        return self.REFERENCE_REASONING
+    
+    def get_key_concepts(self) -> list[str]:
+        """Returns key concepts to evaluate in the agent's reasoning."""
+        return self.KEY_CONCEPTS
 
     def verify_submission(self, submission_data):
         """Verifies the numerical result from the white agent."""

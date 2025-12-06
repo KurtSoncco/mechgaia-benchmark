@@ -28,6 +28,8 @@ class EvaluationResult:
     submission_data: Dict[str, Any]
     evaluation_time_ms: int
     platform: str = "AgentBeats"
+    numerical_score: Optional[float] = None
+    reasoning_score: Optional[float] = None
 
 
 class MetricsCollector:
@@ -78,6 +80,8 @@ class MetricsCollector:
                 task_level INTEGER NOT NULL,
                 task_id TEXT NOT NULL,
                 final_score REAL NOT NULL,
+                numerical_score REAL,
+                reasoning_score REAL,
                 details TEXT NOT NULL,
                 timestamp TEXT NOT NULL,
                 submission_data TEXT NOT NULL,
@@ -137,15 +141,18 @@ class MetricsCollector:
             # Insert evaluation
             cursor.execute("""
                 INSERT INTO evaluations 
-                (agent_id, agent_name, task_level, task_id, final_score, details, 
+                (agent_id, agent_name, task_level, task_id, final_score, 
+                 numerical_score, reasoning_score, details, 
                  timestamp, submission_data, evaluation_time_ms, platform)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, (
                 result.agent_id,
                 result.agent_name,
                 result.task_level,
                 result.task_id,
                 result.final_score,
+                result.numerical_score,
+                result.reasoning_score,
                 json.dumps(result.details),
                 result.timestamp.isoformat(),
                 json.dumps(result.submission_data),

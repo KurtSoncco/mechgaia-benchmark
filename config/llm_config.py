@@ -29,6 +29,7 @@ class LLMConfig:
             "llm": self._get_default_llm_config(),
             "mcp": self._get_default_mcp_config(),
             "a2a": self._get_default_a2a_config(),
+            "reasoning_evaluator": self._get_default_reasoning_eval_config(),
         }
         
         # Load from file if exists
@@ -77,6 +78,20 @@ class LLMConfig:
             "broker_url": os.getenv("A2A_BROKER_URL"),
         }
     
+    def _get_default_reasoning_eval_config(self) -> Dict[str, Any]:
+        """Get default reasoning evaluator configuration."""
+        return {
+            "enabled": os.getenv("REASONING_EVAL_ENABLED", "true").lower() == "true",
+            "provider": os.getenv("REASONING_EVAL_PROVIDER", "ollama"),
+            "model": os.getenv("REASONING_EVAL_MODEL", "neural-chat"),
+            "api_key": os.getenv("REASONING_EVAL_API_KEY"),
+            "base_url": os.getenv("REASONING_EVAL_BASE_URL", "http://localhost:11434"),
+            "temperature": float(os.getenv("REASONING_EVAL_TEMPERATURE", "0.3")),
+            "max_tokens": int(os.getenv("REASONING_EVAL_MAX_TOKENS", "500")),
+            "numerical_weight": float(os.getenv("REASONING_EVAL_NUMERICAL_WEIGHT", "0.7")),
+            "reasoning_weight": float(os.getenv("REASONING_EVAL_REASONING_WEIGHT", "0.3")),
+        }
+    
     def _apply_env_overrides(self, config: Dict[str, Any]) -> Dict[str, Any]:
         """Apply environment variable overrides."""
         # LLM overrides
@@ -106,6 +121,10 @@ class LLMConfig:
     def get_a2a_config(self) -> Dict[str, Any]:
         """Get A2A configuration."""
         return self.config.get("a2a", {})
+    
+    def get_reasoning_eval_config(self) -> Dict[str, Any]:
+        """Get reasoning evaluator configuration."""
+        return self.config.get("reasoning_evaluator", {})
     
     def save(self) -> None:
         """Save configuration to file."""

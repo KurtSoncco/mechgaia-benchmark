@@ -2,7 +2,7 @@ services:
   - type: web
     name: mechgaia-benchmark
     env: python
-    buildCommand: uv pip install --system .
+    buildCommand: uv pip install --system -r pyproject.toml
     startCommand: uvicorn agentbeats_main:app --host 0.0.0.0 --port $PORT
     envVars:
       - key: HOST

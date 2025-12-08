@@ -418,18 +418,7 @@ async def root():
 @app.get("/health")
 async def health_check():
     """Health check endpoint."""
-    if agent_instance:
-        return {
-            "status": "healthy",
-            "agent_name": agent_instance.agent_name,
-            "version": agent_instance.version,
-            "timestamp": datetime.now(timezone.utc).isoformat(),
-            "supported_levels": agent_instance.supported_levels,
-        }
-    return {
-        "status": "healthy",
-        "timestamp": datetime.now(timezone.utc).isoformat(),
-    }
+    return {"status": "ok", "version": "0.1.0"}
 
 
 @app.get("/info")

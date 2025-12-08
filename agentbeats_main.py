@@ -502,21 +502,38 @@ AGENT_CARD_DATA = load_agent_card_from_toml()
 
 @app.get("/.well-known/agent-card.json")
 async def agent_card():
-    """Serve the A2A AgentCard JSON from agent_card.toml."""
-    if AGENT_CARD_DATA:
-        return {
-            "name": AGENT_CARD_DATA.get("name", "MechGAIA Benchmark Agent"),
-            "version": AGENT_CARD_DATA.get("version", "1.0.0"),
-            "description": AGENT_CARD_DATA.get("description", ""),
-            "url": AGENT_CARD_DATA.get(
-                "url", "https://mechgaia-benchmark.onrender.com"
-            ),
-            "author": AGENT_CARD_DATA.get("author", ""),
-            "capabilities": AGENT_CARD_DATA.get("capabilities", {}).get("tools", []),
-            "supportedInputModes": ["text/plain", "application/json"],
-            "supportedOutputModes": ["application/json"],
-        }
-    return JSONResponse(status_code=503, content={"error": "AgentCard not available"})
+    """Serve the A2A Agent Card (Protocol v0.3.0)."""
+    return {
+        "name": "MechGAIA Benchmark Agent",
+        "version": "0.1.0",
+        "description": "Green Agent for MechGAIA mechanical engineering design benchmark evaluation.",
+        "url": "https://mechgaia-benchmark.onrender.com",
+        "protocolVersion": "0.3.0",
+        "preferredTransport": "JSONRPC",
+        "capabilities": {"streaming": False},
+        "defaultInputModes": ["text"],
+        "defaultOutputModes": ["text"],
+        "skills": [
+            {
+                "id": "mechgaia_evaluate",
+                "name": "MechGAIA Evaluation",
+                "description": "Evaluate mechanical engineering design solutions using the MechGAIA benchmark.",
+                "tags": [
+                    "green agent",
+                    "assessment",
+                    "mechanical engineering",
+                    "mechgaia",
+                    "structural analysis",
+                    "design optimization",
+                ],
+                "examples": [
+                    "Evaluate a mechanical design solution using MechGAIA benchmark Level 1 stress analysis task.",
+                    "Run assessment for shaft design optimization (Level 2).",
+                    "Perform plate optimization evaluation (Level 3).",
+                ],
+            }
+        ],
+    }
 
 
 @app.get("/.well-known/agent.json")

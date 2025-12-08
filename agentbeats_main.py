@@ -8,17 +8,16 @@ It handles the communication with the AgentBeats SDK and orchestrates the evalua
 This version includes comprehensive error handling, robustness improvements, and A2A support.
 """
 
+import asyncio
 import json
+import logging
 import os
+import signal
 import sys
 import time
-import signal
-import threading
-import logging
-import asyncio
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, Optional
-from datetime import datetime, timezone
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -28,7 +27,7 @@ from fastapi.responses import JSONResponse
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-    handlers=[logging.StreamHandler(sys.stderr)]
+    handlers=[logging.StreamHandler(sys.stderr)],
 )
 logger = logging.getLogger("MechGAIA")
 
@@ -39,6 +38,7 @@ sys.path.insert(0, str(project_root))
 # Safe imports with error handling
 try:
     from green_agents.level1_stress_task import Level1StressTask
+
     LEVEL1_AVAILABLE = True
 except ImportError as e:
     logger.warning(f"Level1 agent not available: {e}")
@@ -46,6 +46,7 @@ except ImportError as e:
 
 try:
     from green_agents.level2_shaft_design_task import Level2ShaftDesignTask
+
     LEVEL2_AVAILABLE = True
 except ImportError as e:
     logger.warning(f"Level2 agent not available: {e}")
@@ -53,6 +54,7 @@ except ImportError as e:
 
 try:
     from green_agents.level3_plate_optimization_task import Level3PlateOptimizationTask
+
     LEVEL3_AVAILABLE = True
 except ImportError as e:
     logger.warning(f"Level3 agent not available: {e}")
@@ -60,6 +62,7 @@ except ImportError as e:
 
 try:
     from metrics_system import EvaluationResult, get_metrics_collector
+
     METRICS_AVAILABLE = True
 except ImportError as e:
     logger.warning(f"Metrics system not available: {e}")
@@ -68,6 +71,7 @@ except ImportError as e:
 # Try to import A2A components
 try:
     from agentbeats.utils.agents.a2a import send_message_to_agent
+
     A2A_AVAILABLE = True
 except ImportError as e:
     logger.warning(f"A2A components not available: {e}")
@@ -75,9 +79,10 @@ except ImportError as e:
 
 # Try to import A2A SDK for agent card and task endpoints
 try:
-    from a2a_sdk.cards import AgentCard, AgentCapabilities, AgentSkill
-    from a2a_sdk.server import A2AServer
+    from a2a_sdk.cards import AgentCapabilities, AgentCard, AgentSkill
     from a2a_sdk.messages import TaskRequest, TaskResponse
+    from a2a_sdk.server import A2AServer
+
     A2A_SDK_AVAILABLE = True
 except ImportError as e:
     logger.warning(f"A2A SDK not available: {e}")
@@ -101,7 +106,7 @@ class MechGAIAGreenAgent:
         self.agent_name = "MechGAIA-Green-Agent"
         self.version = "0.1.0"
         self.supported_levels = []
-        
+
         # Determine available levels based on successful imports
         if LEVEL1_AVAILABLE:
             self.supported_levels.append(1)
@@ -109,7 +114,7 @@ class MechGAIAGreenAgent:
             self.supported_levels.append(2)
         if LEVEL3_AVAILABLE:
             self.supported_levels.append(3)
-            
+
         self._validate_config()
 
     def _validate_config(self):
@@ -118,7 +123,7 @@ class MechGAIAGreenAgent:
         missing = [var for var in required_vars if not os.environ.get(var)]
         if missing:
             logger.warning(f"Missing environment variables: {missing}. Using defaults.")
-            
+
         if not self.supported_levels:
             logger.error("No task levels are available! Check dependencies.")
             # We don't exit here to allow for partial functionality or debugging, but it's critical.
@@ -138,7 +143,7 @@ class MechGAIAGreenAgent:
             # Extract task information from state
             task_level = state.get("task_level", 1)
             task_id = state.get("task_id", f"mechgaia_level_{task_level}")
-            
+
             # Check for A2A active assessment mode
             target_url = state.get("target_url")
             white_agent_submission = state.get("white_agent_submission", {})
@@ -155,11 +160,15 @@ class MechGAIAGreenAgent:
 
             # Initialize the appropriate green agent
             green_agent = self._get_green_agent(task_level, task_id)
-            
+
             # If target_url is present and A2A is available, perform active assessment
             if target_url and A2A_AVAILABLE:
-                logger.info(f"Starting active assessment for {target_url} on level {task_level}")
-                white_agent_submission = self._perform_active_assessment(green_agent, target_url)
+                logger.info(
+                    f"Starting active assessment for {target_url} on level {task_level}"
+                )
+                white_agent_submission = self._perform_active_assessment(
+                    green_agent, target_url
+                )
                 if "error" in white_agent_submission:
                     return white_agent_submission
 
@@ -203,16 +212,20 @@ class MechGAIAGreenAgent:
             else:
                 raise ValueError(f"Invalid or unavailable task level: {task_level}")
         except Exception as e:
-            raise ValueError(f"Failed to initialize green agent for level {task_level}: {str(e)}")
+            raise ValueError(
+                f"Failed to initialize green agent for level {task_level}: {str(e)}"
+            )
 
-    def _perform_active_assessment(self, green_agent, target_url: str) -> Dict[str, Any]:
+    def _perform_active_assessment(
+        self, green_agent, target_url: str
+    ) -> Dict[str, Any]:
         """
         Perform active assessment by sending the problem to the white agent via A2A.
-        
+
         Args:
             green_agent: The green agent instance
             target_url: The URL of the white agent
-            
+
         Returns:
             The submission data parsed from the white agent's response
         """
@@ -220,25 +233,28 @@ class MechGAIAGreenAgent:
             # Get the problem statement from the green agent
             # Assuming green agents have a 'get_problem_statement' method or similar
             # If not, we construct a generic one based on the task
-            problem_statement = getattr(green_agent, "problem_statement", 
-                                      f"Please solve MechGAIA Level {green_agent.task_id.split('_')[-1]} task.")
-            
+            problem_statement = getattr(
+                green_agent,
+                "problem_statement",
+                f"Please solve MechGAIA Level {green_agent.task_id.split('_')[-1]} task.",
+            )
+
             # Send message to white agent
             # We need to run the async function in a sync context
             logger.info(f"Sending problem to {target_url}: {problem_statement[:50]}...")
-            
+
             try:
                 loop = asyncio.get_event_loop()
             except RuntimeError:
                 loop = asyncio.new_event_loop()
                 asyncio.set_event_loop(loop)
-                
+
             response_text = loop.run_until_complete(
                 send_message_to_agent(target_url, problem_statement, timeout=60.0)
             )
-            
+
             logger.info(f"Received response from white agent: {response_text[:50]}...")
-            
+
             # Parse the response
             # We expect the agent to return a JSON string or a string containing JSON
             try:
@@ -251,15 +267,15 @@ class MechGAIAGreenAgent:
                     submission = json.loads(json_str)
                 else:
                     submission = json.loads(response_text)
-                    
+
                 return submission
             except json.JSONDecodeError:
                 logger.warning("Failed to parse JSON from agent response")
                 return {
                     "error": "Failed to parse JSON from agent response",
-                    "raw_response": response_text
+                    "raw_response": response_text,
                 }
-                
+
         except Exception as e:
             logger.error(f"Active assessment failed: {e}")
             return {"error": f"Active assessment failed: {str(e)}"}
@@ -285,7 +301,9 @@ class MechGAIAGreenAgent:
                 return {
                     "error": submission_data["error"],
                     "score": 0.0,
-                    "details": {"raw_response": submission_data.get("raw_response", "")}
+                    "details": {
+                        "raw_response": submission_data.get("raw_response", "")
+                    },
                 }
 
             # Verify the submission
@@ -308,8 +326,10 @@ class MechGAIAGreenAgent:
                     eval_result = EvaluationResult(
                         agent_id=agent_id,
                         agent_name=agent_name,
-                        task_level=str(green_agent.task_id.split("_")[-1]) if hasattr(green_agent, 'task_id') else "1",
-                        task_id=getattr(green_agent, 'task_id', 'unknown'),
+                        task_level=str(green_agent.task_id.split("_")[-1])
+                        if hasattr(green_agent, "task_id")
+                        else "1",
+                        task_id=getattr(green_agent, "task_id", "unknown"),
                         final_score=results.get("final_score", 0.0),
                         details=results.get("details", {}),
                         timestamp=datetime.now(timezone.utc),
@@ -340,7 +360,7 @@ class MechGAIAGreenAgent:
             "supported_levels": self.supported_levels,
             "capabilities": [
                 "stress_analysis",
-                "shaft_design", 
+                "shaft_design",
                 "plate_optimization",
                 "cad_analysis",
                 "material_selection",
@@ -352,7 +372,7 @@ class MechGAIAGreenAgent:
                 "level3": LEVEL3_AVAILABLE,
                 "metrics": METRICS_AVAILABLE,
                 "a2a": A2A_AVAILABLE,
-            }
+            },
         }
 
 
@@ -422,11 +442,47 @@ async def health_check():
 
 
 @app.get("/info")
-async def agent_info():
-    """Get agent information."""
-    if agent_instance:
-        return agent_instance.get_agent_info()
-    return {"error": "Agent not initialized"}
+async def get_controller_info():
+    """AgentBeats controller info endpoint."""
+    return {
+        "status": "running",
+        "controllerId": "mechgaia-agent-v1",
+        "agentStatus": "running",
+        "proxyUrl": "https://mechgaia-benchmark.onrender.com",
+        "endpoints": {
+            "agent": "https://mechgaia-benchmark.onrender.com/agent",
+            "tasks": "https://mechgaia-benchmark.onrender.com/tasks",
+            "reset": "https://mechgaia-benchmark.onrender.com/reset",
+            "health": "https://mechgaia-benchmark.onrender.com/health",
+            "info": "https://mechgaia-benchmark.onrender.com/info",
+        },
+        "version": "0.1.0",
+        "agent": {
+            "name": "MechGAIA Benchmark Agent",
+            "description": "A Green Agent for evaluating mechanical engineering design AI agents",
+            "version": "0.1.0",
+            "owner": "KurtSonccoBerkeley",
+            "type": "assessor",
+        },
+    }
+
+
+@app.get("/agent")
+async def get_agent_status():
+    """Get agent status endpoint."""
+    return {"status": "running", "ready": True}
+
+
+@app.get("/tasks")
+async def get_tasks():
+    """Get tasks endpoint."""
+    return {"tasks": []}
+
+
+@app.post("/reset")
+async def reset_agent():
+    """Reset agent endpoint."""
+    return {"status": "reset"}
 
 
 @app.get("/.well-known/agent-card.json")
@@ -451,7 +507,7 @@ async def get_agent_card():
         "endpoints": {"a2a": "https://mechgaia-benchmark.onrender.com/a2a"},
         "capabilities": ["stress_analysis", "structural_design", "cad_integration"],
         "supportedInputModes": ["text/plain", "application/json"],
-        "supportedOutputModes": ["application/json"]
+        "supportedOutputModes": ["application/json"],
     }
 
 
@@ -494,7 +550,9 @@ async def startup_event():
     if agent_instance is None:
         try:
             agent_instance = MechGAIAGreenAgent()
-            logger.info(f"Initialized {agent_instance.agent_name} v{agent_instance.version}")
+            logger.info(
+                f"Initialized {agent_instance.agent_name} v{agent_instance.version}"
+            )
             logger.info(f"Supported levels: {agent_instance.supported_levels}")
             if A2A_AVAILABLE:
                 logger.info("A2A Active Assessment: ENABLED")
@@ -507,8 +565,6 @@ async def startup_event():
         except Exception as e:
             logger.critical(f"Failed to initialize agent: {e}")
             # Don't exit here - let the app start but endpoints will return errors
-
-
 
 
 def signal_handler(signum, frame):
@@ -525,15 +581,17 @@ def main():
     and processes incoming evaluation requests.
     """
     global agent_instance
-    
+
     # Set up signal handlers for graceful shutdown
     signal.signal(signal.SIGINT, signal_handler)
     signal.signal(signal.SIGTERM, signal_handler)
-    
+
     # Initialize the agent
     try:
         agent_instance = MechGAIAGreenAgent()
-        logger.info(f"Initialized {agent_instance.agent_name} v{agent_instance.version}")
+        logger.info(
+            f"Initialized {agent_instance.agent_name} v{agent_instance.version}"
+        )
         logger.info(f"Supported levels: {agent_instance.supported_levels}")
         if A2A_AVAILABLE:
             logger.info("A2A Active Assessment: ENABLED")
@@ -591,18 +649,18 @@ def main():
     # Determine run mode:
     # - Web service mode: Run as FastAPI server (Render, Docker, production)
     # - Interactive mode: Read from stdin (AgentBeats platform, local testing)
-    
+
     # Check for explicit web service mode via environment variable
-    web_service_mode = os.environ.get('WEB_SERVICE_MODE', 'true').lower() == 'true'
-    
+    web_service_mode = os.environ.get("WEB_SERVICE_MODE", "true").lower() == "true"
+
     # Also check if we're in a container or cloud environment
     is_containerized = (
-        os.path.exists('/.dockerenv') or 
-        os.environ.get('RENDER') or 
-        os.environ.get('RAILWAY_ENVIRONMENT') or
-        os.environ.get('KUBERNETES_SERVICE_HOST')
+        os.path.exists("/.dockerenv")
+        or os.environ.get("RENDER")
+        or os.environ.get("RAILWAY_ENVIRONMENT")
+        or os.environ.get("KUBERNETES_SERVICE_HOST")
     )
-    
+
     if web_service_mode or is_containerized:
         # Web service mode - FastAPI will be started by uvicorn
         logger.info("Running in web service mode (FastAPI)")
@@ -655,6 +713,7 @@ def main():
     except Exception as e:
         logger.critical(f"Unexpected error: {e}")
         import traceback
+
         traceback.print_exc()
     finally:
         logger.info("MechGAIA Green Agent shutting down")

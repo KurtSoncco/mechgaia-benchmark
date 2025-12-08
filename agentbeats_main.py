@@ -18,8 +18,11 @@ import logging
 import asyncio
 from pathlib import Path
 from typing import Any, Dict, Optional
-from http.server import HTTPServer, BaseHTTPRequestHandler
 from datetime import datetime, timezone
+
+from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
 # Configure logging
 logging.basicConfig(
@@ -69,6 +72,22 @@ try:
 except ImportError as e:
     logger.warning(f"A2A components not available: {e}")
     A2A_AVAILABLE = False
+
+# Try to import A2A SDK for agent card and task endpoints
+try:
+    from a2a_sdk.cards import AgentCard, AgentCapabilities, AgentSkill
+    from a2a_sdk.server import A2AServer
+    from a2a_sdk.messages import TaskRequest, TaskResponse
+    A2A_SDK_AVAILABLE = True
+except ImportError as e:
+    logger.warning(f"A2A SDK not available: {e}")
+    A2A_SDK_AVAILABLE = False
+    AgentCard = None
+    AgentCapabilities = None
+    AgentSkill = None
+    A2AServer = None
+    TaskRequest = None
+    TaskResponse = None
 
 
 class MechGAIAGreenAgent:
@@ -337,156 +356,155 @@ class MechGAIAGreenAgent:
         }
 
 
-class HealthHandler(BaseHTTPRequestHandler):
-    """HTTP handler for health checks and agent info."""
-    
-    def __init__(self, agent, *args, **kwargs):
-        self.agent = agent
-        super().__init__(*args, **kwargs)
-    
-    def do_GET(self):
-        try:
-            if self.path == '/':
-                # Root endpoint for health checks and monitoring
-                self.send_response(200)
-                self.send_header('Content-type', 'application/json')
-                self.end_headers()
-                response = {
-                    "status": "ok",
-                    "service": "mechgaia-benchmark"
-                }
-                self.wfile.write(json.dumps(response).encode())
-            elif self.path == '/health':
-                self.send_response(200)
-                self.send_header('Content-type', 'application/json')
-                self.end_headers()
-                response = {
-                    "status": "healthy",
-                    "agent_name": self.agent.agent_name,
-                    "version": self.agent.version,
-                    "timestamp": datetime.now(timezone.utc).isoformat(),
-                    "supported_levels": self.agent.supported_levels
-                }
-                self.wfile.write(json.dumps(response).encode())
-            elif self.path == '/info':
-                self.send_response(200)
-                self.send_header('Content-type', 'application/json')
-                self.end_headers()
-                info = self.agent.get_agent_info()
-                self.wfile.write(json.dumps(info, indent=2).encode())
-            else:
-                self.send_response(404)
-                self.end_headers()
-                self.wfile.write(b'Not Found')
-        except Exception as e:
-            logger.error(f"Health handler error: {e}")
-            try:
-                self.send_response(500)
-                self.end_headers()
-                self.wfile.write(b'Internal Server Error')
-            except:
-                pass
-    
-    def log_message(self, format, *args):
-        pass  # Disable logging
+# Initialize FastAPI app
+app = FastAPI(
+    title="MechGAIA Benchmark Agent",
+    description="Earthquake site response & MechGAIA benchmark agent.",
+    version="1.0.0",
+)
 
+# Add CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
-def get_port() -> int:
-    """Get the port number from environment variables with proper fallback."""
+# Global agent instance (will be initialized in main)
+agent_instance: Optional[MechGAIAGreenAgent] = None
+
+# Initialize A2A server if available
+a2a_server = None
+if A2A_SDK_AVAILABLE:
     try:
-        # Check PORT first (Render standard), then fallback to local default for development
-        port_str = os.environ.get('PORT') or '8000'
-        
-        # Handle empty strings and whitespace
-        if not port_str or not port_str.strip():
-            port_str = '8000'
-        
-        port_str = port_str.strip()
-        port = int(port_str)
-        
-        # Validate port range
-        if not (1 <= port <= 65535):
-            logger.warning(f"Port {port} out of range, using 8000")
-            port = 8000
-            
-        return port
-    except (ValueError, TypeError) as e:
-        logger.warning(f"Invalid port configuration: {e}, using 8000")
-        return 8000
-
-
-def start_health_server(agent, port: int) -> Optional[threading.Thread]:
-    """Start the health check server in a separate thread."""
-    try:
-        # Create a custom handler class with the agent instance
-        class AgentHealthHandler(BaseHTTPRequestHandler):
-            def __init__(self, *args, **kwargs):
-                self.agent = agent
-                super().__init__(*args, **kwargs)
-            
-            def do_GET(self):
-                try:
-                    if self.path == '/':
-                        # Root endpoint for health checks and monitoring
-                        self.send_response(200)
-                        self.send_header('Content-type', 'application/json')
-                        self.end_headers()
-                        response = {
-                            "status": "ok",
-                            "service": "mechgaia-benchmark"
-                        }
-                        self.wfile.write(json.dumps(response).encode())
-                    elif self.path == '/health':
-                        self.send_response(200)
-                        self.send_header('Content-type', 'application/json')
-                        self.end_headers()
-                        response = {
-                            "status": "healthy",
-                            "agent_name": self.agent.agent_name,
-                            "version": self.agent.version,
-                            "timestamp": datetime.now(timezone.utc).isoformat(),
-                            "supported_levels": self.agent.supported_levels
-                        }
-                        self.wfile.write(json.dumps(response).encode())
-                    elif self.path == '/info':
-                        self.send_response(200)
-                        self.send_header('Content-type', 'application/json')
-                        self.end_headers()
-                        info = self.agent.get_agent_info()
-                        self.wfile.write(json.dumps(info, indent=2).encode())
-                    else:
-                        self.send_response(404)
-                        self.end_headers()
-                        self.wfile.write(b'Not Found')
-                except Exception as e:
-                    logger.error(f"Health handler error: {e}")
-                    try:
-                        self.send_response(500)
-                        self.end_headers()
-                        self.wfile.write(b'Internal Server Error')
-                    except:
-                        pass
-            
-            def log_message(self, format, *args):
-                pass  # Disable logging
-
-        def serve():
-            try:
-                host = os.environ.get('HOST', '0.0.0.0')
-                server = HTTPServer((host, port), AgentHealthHandler)
-                logger.info(f"Health server starting on {host}:{port}")
-                server.serve_forever()
-            except Exception as e:
-                logger.error(f"Health server failed to start: {e}")
-                # Don't print stack trace here to avoid cluttering logs unless debugging
-
-        health_thread = threading.Thread(target=serve, daemon=True)
-        health_thread.start()
-        return health_thread
-        
+        a2a_server = A2AServer()
     except Exception as e:
-        logger.error(f"Failed to start health server: {e}")
-        return None
+        logger.warning(f"Failed to initialize A2A server: {e}")
+
+# Create AgentCard if A2A SDK is available
+public_agent_card = None
+if A2A_SDK_AVAILABLE and AgentCard:
+    try:
+        public_agent_card = AgentCard(
+            name="MechGAIA Benchmark Agent",
+            description="Earthquake site response & MechGAIA benchmark agent.",
+            url="https://mechgaia-benchmark.onrender.com/",
+            version="1.0.0",
+            default_input_modes=["text"],
+            default_output_modes=["text"],
+            capabilities=AgentCapabilities(streaming=False),
+            skills=[
+                AgentSkill(
+                    id="mechgaia_run",
+                    name="Run MechGAIA benchmark",
+                    description="Runs MechGAIA benchmark tasks.",
+                    url="https://mechgaia-benchmark.onrender.com/a2a/task",
+                )
+            ],
+            supports_authenticated_extended_card=False,
+        )
+    except Exception as e:
+        logger.warning(f"Failed to create AgentCard: {e}")
+
+
+@app.get("/")
+async def root():
+    """Root endpoint for health checks and monitoring."""
+    return {"status": "ok", "service": "mechgaia-benchmark"}
+
+
+@app.get("/health")
+async def health_check():
+    """Health check endpoint."""
+    if agent_instance:
+        return {
+            "status": "healthy",
+            "agent_name": agent_instance.agent_name,
+            "version": agent_instance.version,
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "supported_levels": agent_instance.supported_levels,
+        }
+    return {
+        "status": "healthy",
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+    }
+
+
+@app.get("/info")
+async def agent_info():
+    """Get agent information."""
+    if agent_instance:
+        return agent_instance.get_agent_info()
+    return {"error": "Agent not initialized"}
+
+
+@app.get("/.well-known/agent-card.json")
+async def agent_card():
+    """Serve the A2A AgentCard JSON."""
+    if public_agent_card:
+        return public_agent_card.model_dump()
+    return JSONResponse(
+        status_code=503,
+        content={"error": "AgentCard not available"},
+    )
+
+
+@app.post("/a2a/task")
+async def a2a_entrypoint(request: Request):
+    """A2A task endpoint handler."""
+    if not a2a_server:
+        return JSONResponse(
+            status_code=503,
+            content={"error": "A2A server not available"},
+        )
+    return await a2a_server.handle_http_request(request)
+
+
+# Register A2A skill handler if server is available
+if a2a_server and A2A_SDK_AVAILABLE:
+
+    @a2a_server.skill("mechgaia_run")
+    async def mechgaia_run(task: TaskRequest) -> TaskResponse:
+        """Handle MechGAIA benchmark task requests."""
+        try:
+            # TODO: call your MechGAIA pipeline here
+            # For now, return a simple success message
+            return TaskResponse(
+                output="MechGAIA agent is alive and ready.",
+                status="SUCCEEDED",
+            )
+        except Exception as e:
+            logger.error(f"Error in mechgaia_run skill: {e}")
+            return TaskResponse(
+                output=f"Error: {str(e)}",
+                status="FAILED",
+            )
+
+
+@app.on_event("startup")
+async def startup_event():
+    """Initialize the agent when FastAPI starts."""
+    global agent_instance
+    if agent_instance is None:
+        try:
+            agent_instance = MechGAIAGreenAgent()
+            logger.info(f"Initialized {agent_instance.agent_name} v{agent_instance.version}")
+            logger.info(f"Supported levels: {agent_instance.supported_levels}")
+            if A2A_AVAILABLE:
+                logger.info("A2A Active Assessment: ENABLED")
+            else:
+                logger.warning("A2A Active Assessment: DISABLED (missing dependencies)")
+            if A2A_SDK_AVAILABLE:
+                logger.info("A2A SDK: ENABLED (AgentCard and task endpoints available)")
+            else:
+                logger.warning("A2A SDK: DISABLED (missing dependencies)")
+        except Exception as e:
+            logger.critical(f"Failed to initialize agent: {e}")
+            # Don't exit here - let the app start but endpoints will return errors
+
+
 
 
 def signal_handler(signum, frame):
@@ -502,36 +520,28 @@ def main():
     This function handles the communication with the AgentBeats platform
     and processes incoming evaluation requests.
     """
+    global agent_instance
+    
     # Set up signal handlers for graceful shutdown
     signal.signal(signal.SIGINT, signal_handler)
     signal.signal(signal.SIGTERM, signal_handler)
     
     # Initialize the agent
     try:
-        agent = MechGAIAGreenAgent()
-        logger.info(f"Initialized {agent.agent_name} v{agent.version}")
-        logger.info(f"Supported levels: {agent.supported_levels}")
+        agent_instance = MechGAIAGreenAgent()
+        logger.info(f"Initialized {agent_instance.agent_name} v{agent_instance.version}")
+        logger.info(f"Supported levels: {agent_instance.supported_levels}")
         if A2A_AVAILABLE:
             logger.info("A2A Active Assessment: ENABLED")
         else:
             logger.warning("A2A Active Assessment: DISABLED (missing dependencies)")
+        if A2A_SDK_AVAILABLE:
+            logger.info("A2A SDK: ENABLED (AgentCard and task endpoints available)")
+        else:
+            logger.warning("A2A SDK: DISABLED (missing dependencies)")
     except Exception as e:
         logger.critical(f"Failed to initialize agent: {e}")
         sys.exit(1)
-    
-    # Start health server
-    port = get_port()
-    health_thread = start_health_server(agent, port)
-    
-    if health_thread:
-        # Give the health server time to start
-        time.sleep(2)
-        host = os.environ.get('HOST', '0.0.0.0')
-        logger.info("MechGAIA Green Agent started successfully")
-        logger.info(f"Health endpoint available at: http://{host}:{port}/health")
-        logger.info(f"Agent info available at: http://{host}:{port}/info")
-    else:
-        logger.warning("Health server failed to start")
 
     # Handle command line arguments for AgentBeats
     if len(sys.argv) > 1:
@@ -539,7 +549,7 @@ def main():
 
         if command == "info":
             # Return agent information
-            info = agent.get_agent_info()
+            info = agent_instance.get_agent_info()
             print(json.dumps(info, indent=2))
             return
 
@@ -570,12 +580,12 @@ def main():
             }
 
             # Run evaluation
-            result = agent.run_agent(state, {})
+            result = agent_instance.run_agent(state, {})
             print(json.dumps(result, indent=2))
             return
 
     # Determine run mode:
-    # - Web service mode: Run as HTTP server only (Render, Docker, production)
+    # - Web service mode: Run as FastAPI server (Render, Docker, production)
     # - Interactive mode: Read from stdin (AgentBeats platform, local testing)
     
     # Check for explicit web service mode via environment variable
@@ -590,18 +600,18 @@ def main():
     )
     
     if web_service_mode or is_containerized:
-        # Web service mode - just keep the health server running
-        logger.info("Running in web service mode")
-        logger.info("Health server is active and ready to handle requests")
+        # Web service mode - FastAPI will be started by uvicorn
+        logger.info("Running in web service mode (FastAPI)")
+        logger.info("FastAPI endpoints available:")
+        logger.info("  GET  / - Root endpoint")
+        logger.info("  GET  /health - Health check")
+        logger.info("  GET  /info - Agent information")
+        if A2A_SDK_AVAILABLE:
+            logger.info("  GET  /.well-known/agent-card.json - A2A AgentCard")
+            logger.info("  POST /a2a/task - A2A task endpoint")
         logger.info("Set WEB_SERVICE_MODE=false to enable interactive mode")
-        try:
-            # Keep the process alive
-            while True:
-                time.sleep(3600)  # Sleep for 1 hour, wake up to check
-        except KeyboardInterrupt:
-            logger.info("Shutdown requested by user")
-        finally:
-            logger.info("MechGAIA Green Agent shutting down")
+        # Note: When running with uvicorn, this function won't be called
+        # The FastAPI app will be served directly by uvicorn
         return
 
     # Interactive mode for AgentBeats platform (stdin available)
@@ -619,7 +629,7 @@ def main():
                 state = json.loads(line.strip())
 
                 # Run the agent
-                result = agent.run_agent(state, {})
+                result = agent_instance.run_agent(state, {})
 
                 # Send result back to AgentBeats platform
                 print(json.dumps(result))

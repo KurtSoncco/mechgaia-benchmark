@@ -48,6 +48,7 @@ dependencies = [
     
     # A2A and MCP
     "aiohttp>=3.9.0",  # For async HTTP and WebSocket transport
+    "a2a-sdk",  # For A2A agent card and task endpoints
 ]
 
 [project.optional-dependencies]

@@ -1,10 +1,10 @@
 [agent]
-name = "MechGAIA-Green-Agent"
-description = "Green agent for MechGAIA benchmark evaluating mechanical engineering design AI agents"
-version = "0.1.0"
+name = "MechGAIA Benchmark Agent"
+description = "Earthquake site response & MechGAIA benchmark agent."
+version = "1.0.0"
 author = "Kurt Walter Soncco Sinchi"
 email = "kurtwal98@berkeley.edu"
-url = "https://mechgaia-benchmark.onrender.com"
+url = "https://mechgaia-benchmark.onrender.com/"
 entrypoint = "agentbeats_main.py"
 
 [agent.capabilities]

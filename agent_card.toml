@@ -1,6 +1,6 @@
 [agent]
 name = "MechGAIA Benchmark Agent"
-description = "Earthquake site response & MechGAIA benchmark agent."
+description = "MechGAIA benchmark agent."
 version = "1.0.0"
 author = "Kurt Walter Soncco Sinchi"
 email = "kurtwal98@berkeley.edu"

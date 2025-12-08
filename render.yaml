@@ -3,7 +3,7 @@ services:
     name: mechgaia-benchmark
     env: python
     buildCommand: uv sync --frozen
-    startCommand: uvicorn agentbeats_main:app --host 0.0.0.0 --port $PORT
+    startCommand: uv run uvicorn agentbeats_main:app --host 0.0.0.0 --port $PORT
     envVars:
       - key: HOST
         value: 0.0.0.0

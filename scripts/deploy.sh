@@ -8,7 +8,7 @@ set -e  # Exit on any error
 # Configuration
 AGENT_NAME="MechGAIA-Green-Agent"
 AGENT_VERSION="0.1.0"
-PYTHON_VERSION="3.11"
+PYTHON_VERSION="3.13"
 
 # Colors for output
 RED='\033[0;31m'

@@ -15,6 +15,7 @@ import os
 import signal
 import sys
 import time
+import tomllib
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, Optional
@@ -485,15 +486,37 @@ async def reset_agent():
     return {"status": "reset"}
 
 
+def load_agent_card_from_toml(toml_path: str = "agent_card.toml") -> dict:
+    """Load agent card from TOML file."""
+    try:
+        with open(toml_path, "rb") as f:
+            data = tomllib.load(f)
+        return data.get("agent", {})
+    except Exception as e:
+        logger.warning(f"Error loading agent_card.toml: {e}")
+        return {}
+
+
+AGENT_CARD_DATA = load_agent_card_from_toml()
+
+
 @app.get("/.well-known/agent-card.json")
 async def agent_card():
-    """Serve the A2A AgentCard JSON."""
-    if public_agent_card:
-        return public_agent_card.model_dump()
-    return JSONResponse(
-        status_code=503,
-        content={"error": "AgentCard not available"},
-    )
+    """Serve the A2A AgentCard JSON from agent_card.toml."""
+    if AGENT_CARD_DATA:
+        return {
+            "name": AGENT_CARD_DATA.get("name", "MechGAIA Benchmark Agent"),
+            "version": AGENT_CARD_DATA.get("version", "1.0.0"),
+            "description": AGENT_CARD_DATA.get("description", ""),
+            "url": AGENT_CARD_DATA.get(
+                "url", "https://mechgaia-benchmark.onrender.com"
+            ),
+            "author": AGENT_CARD_DATA.get("author", ""),
+            "capabilities": AGENT_CARD_DATA.get("capabilities", {}).get("tools", []),
+            "supportedInputModes": ["text/plain", "application/json"],
+            "supportedOutputModes": ["application/json"],
+        }
+    return JSONResponse(status_code=503, content={"error": "AgentCard not available"})
 
 
 @app.get("/.well-known/agent.json")

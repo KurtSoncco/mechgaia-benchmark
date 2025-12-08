@@ -440,6 +440,21 @@ async def agent_card():
     )
 
 
+@app.get("/.well-known/agent.json")
+async def get_agent_card():
+    """AgentBeats A2A discovery endpoint"""
+    return {
+        "name": "MechGAIA Benchmark Agent",
+        "version": "0.1.0",
+        "description": "Green Agent for evaluating mechanical engineering design",
+        "owner": "KurtSonccoBerkeley",
+        "endpoints": {"a2a": "https://mechgaia-benchmark.onrender.com/a2a"},
+        "capabilities": ["stress_analysis", "structural_design", "cad_integration"],
+        "supportedInputModes": ["text/plain", "application/json"],
+        "supportedOutputModes": ["application/json"]
+    }
+
+
 @app.post("/a2a/task")
 async def a2a_entrypoint(request: Request):
     """A2A task endpoint handler."""

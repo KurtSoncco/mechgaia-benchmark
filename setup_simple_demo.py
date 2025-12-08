@@ -56,6 +56,14 @@ def test_agents():
         assert len(submissions) > 0
         print("   ✅ Demo White Agent working")
         
+        # Test Simple White Agent (if available)
+        try:
+            from white_agents.simple_white_agent import GeneralWhiteAgentExecutor
+            executor = GeneralWhiteAgentExecutor()
+            print("   ✅ Simple White Agent available")
+        except ImportError:
+            print("   ⚠️  Simple White Agent not available (optional)")
+        
         return True
         
     except Exception as e:
@@ -132,7 +140,10 @@ def main():
     print("   1. Run the MechGAIA A2A demo: python simple_demo_server.py")
     print("   2. Open your browser to: http://localhost:5001")
     print("   3. The demo uses the actual MechGAIA benchmark agents from /agents/ folder")
-    print("   4. For full benchmark participation, see PARTICIPANT_REQUIREMENTS.md")
+    print("   4. To start the simple white agent server:")
+    print("      python -m white_agents.simple_white_agent")
+    print("      Or use: from run_benchmark import start_simple_white_agent; start_simple_white_agent()")
+    print("   5. For full benchmark participation, see PARTICIPANT_REQUIREMENTS.md")
     print("\n🎬 Ready for MechGAIA A2A protocol demo recording!")
 
 if __name__ == "__main__":

@@ -93,6 +93,113 @@ When agentbeats.org is available:
 4. **Earthshaker** is optional (requires Python 3.13+)
 5. **Test locally** before deploying
 
+## 🤖 Simple White Agent
+
+The repository includes a simple white agent implementation (`white_agents/simple_white_agent.py`) that can be used for testing. This agent implements the A2A protocol and uses litellm for LLM interactions.
+
+### Environment Variables
+
+The white agent can be configured using the following environment variables:
+
+**LLM Configuration:**
+- `LLM_MODEL`: Model to use (default: `ollama/llama3`)
+  - For Ollama: `ollama/llama3`, `ollama/mistral`, etc.
+  - For OpenAI: `openai/gpt-4o`, `gpt-4o`, etc.
+- `LLM_PROVIDER`: Provider name (default: `ollama`)
+  - Options: `ollama`, `openai`, etc.
+- `LLM_TEMPERATURE`: Temperature for LLM (default: `0.0`)
+- `OPENAI_API_KEY`: OpenAI API key (required if using OpenAI)
+- `OLLAMA_BASE_URL`: Base URL for Ollama (default: `http://localhost:11434`)
+
+**White Agent Server Configuration:**
+- `WHITE_AGENT_HOST`: Host to bind to (default: `localhost`)
+- `WHITE_AGENT_PORT`: Port to bind to (default: `9002`)
+
+### Using Ollama (No API Key Required)
+
+```bash
+# Set environment variables (or use .env file)
+export LLM_MODEL="ollama/llama3"
+export LLM_PROVIDER="ollama"
+export OLLAMA_BASE_URL="http://localhost:11434"
+
+# Start the white agent
+python -m white_agents.simple_white_agent
+```
+
+Make sure Ollama is running locally:
+```bash
+# Install Ollama from https://ollama.ai
+# Pull a model
+ollama pull llama3
+```
+
+### Using OpenAI
+
+```bash
+# Set environment variables (or use .env file)
+export LLM_MODEL="openai/gpt-4o"
+export LLM_PROVIDER="openai"
+export OPENAI_API_KEY="your-api-key-here"
+
+# Start the white agent
+python -m white_agents.simple_white_agent
+```
+
+### Starting the White Agent
+
+**Option 1: Direct execution**
+```bash
+python -m white_agents.simple_white_agent
+```
+
+**Option 2: Using the integration function**
+```python
+from run_benchmark import start_simple_white_agent
+
+# Start in background thread
+thread = start_simple_white_agent(background=True)
+
+# Or start blocking
+start_simple_white_agent(background=False)
+```
+
+**Option 3: Using configuration**
+```python
+from config.white_agent_config import get_white_agent_config
+from white_agents.simple_white_agent import start_white_agent
+
+config = get_white_agent_config()
+start_white_agent(
+    host=config.get("agent.host"),
+    port=config.get("agent.port")
+)
+```
+
+### Testing the White Agent
+
+Once the white agent is running, you can test it using the green agent's A2A communication:
+
+```python
+from agentbeats.utils.agents.a2a import send_message_to_agent
+import asyncio
+
+async def test_white_agent():
+    response = await send_message_to_agent(
+        "http://localhost:9002",
+        "Hello, can you help me solve a problem?",
+        timeout=60.0
+    )
+    print(response)
+
+asyncio.run(test_white_agent())
+```
+
+Or use the smoke tests:
+```bash
+uv run pytest tests/test_simple_white_agent.py -v
+```
+
 ## 🚀 Quick Commands
 
 ```bash
@@ -100,9 +207,19 @@ When agentbeats.org is available:
 source .venv/bin/activate
 uv sync
 
-# Test
+# Test green agent
 uv run python agentbeats_main.py info
 uv run python agentbeats_main.py evaluate examples/submissions/example_level1.json 1
+
+# Start white agent (for testing)
+# Using Ollama (default, no API key needed)
+python -m white_agents.simple_white_agent
+
+# Using OpenAI (requires OPENAI_API_KEY)
+export OPENAI_API_KEY="your-key"
+export LLM_MODEL="openai/gpt-4o"
+export LLM_PROVIDER="openai"
+python -m white_agents.simple_white_agent
 
 # Deploy
 docker build -f Dockerfile.uv -t mechgaia-green-agent .

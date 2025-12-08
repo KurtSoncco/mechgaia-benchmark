@@ -10,6 +10,7 @@ import argparse
 import json
 import os
 import sys
+import threading
 from pathlib import Path
 from typing import Optional
 
@@ -20,6 +21,57 @@ sys.path.insert(0, str(project_root))
 from green_agents.level1_stress_task import Level1StressTask
 from green_agents.level2_shaft_design_task import Level2ShaftDesignTask
 from green_agents.level3_plate_optimization_task import Level3PlateOptimizationTask
+
+
+def start_simple_white_agent(
+    host: Optional[str] = None, port: Optional[int] = None, background: bool = True
+):
+    """
+    Start the simple white agent server.
+
+    Args:
+        host: Host to bind to (defaults to WHITE_AGENT_HOST env var or "localhost")
+        port: Port to bind to (defaults to WHITE_AGENT_PORT env var or 9002)
+        background: If True, start in a background thread. If False, block until interrupted.
+
+    Returns:
+        Thread object if background=True, None otherwise
+    """
+    try:
+        from config.white_agent_config import get_white_agent_config
+        from white_agents.simple_white_agent import start_white_agent
+
+        config = get_white_agent_config()
+        # Ensure host and port are not None
+        resolved_host: str = (
+            host or config.get("agent.host", "localhost") or "localhost"
+        )
+        resolved_port: int = port or config.get("agent.port", 9002) or 9002
+
+        if background:
+
+            def run_agent():
+                start_white_agent(host=resolved_host, port=resolved_port)
+
+            thread = threading.Thread(target=run_agent, daemon=True)
+            thread.start()
+            print(
+                f"White agent server started in background on http://{resolved_host}:{resolved_port}"
+            )
+            return thread
+        else:
+            print(
+                f"Starting white agent server on http://{resolved_host}:{resolved_port}"
+            )
+            start_white_agent(host=resolved_host, port=resolved_port)
+            return None
+    except ImportError as e:
+        print(f"Warning: Could not import white agent: {e}")
+        print("Make sure white_agents package is available.")
+        return None
+    except Exception as e:
+        print(f"Warning: Failed to start white agent: {e}")
+        return None
 
 
 def load_white_agent(agent_path: str) -> dict:

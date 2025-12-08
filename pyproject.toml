@@ -9,7 +9,7 @@ authors = [
 ]
 license = { text = "MIT" }
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.13"
 classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: MIT License",
@@ -29,8 +29,7 @@ dependencies = [
     
     # AgentBeats SDK
     "agentbeats",
-    "earthshaker",  # Required for submission
-    # Install with: uv sync --extra agentbeats-runtime
+    "earthshaker",  # Requires Python >=3.13
     
     # Web API and Metrics
     "fastapi",
@@ -45,6 +44,7 @@ dependencies = [
     # "openai>=1.0.0",  # For OpenAI provider
     # "anthropic>=0.18.0",  # For Anthropic/Claude provider
     "requests>=2.31.0",  # For Ollama, Deepseek, and generic providers
+    "litellm",  # For unified LLM API (used by white agent)
     
     # A2A and MCP
     "aiohttp>=3.9.0",  # For async HTTP and WebSocket transport
@@ -56,8 +56,6 @@ dev = [
     "pytest",
     "ruff",
 ]
-# Note: earthshaker (AgentBeats runtime) requires Python >=3.13
-# If using Python 3.13+, install with: uv pip install earthshaker
 
 
 [tool.uv]

@@ -346,7 +346,17 @@ class HealthHandler(BaseHTTPRequestHandler):
     
     def do_GET(self):
         try:
-            if self.path == '/health':
+            if self.path == '/':
+                # Root endpoint for health checks and monitoring
+                self.send_response(200)
+                self.send_header('Content-type', 'application/json')
+                self.end_headers()
+                response = {
+                    "status": "ok",
+                    "service": "mechgaia-benchmark"
+                }
+                self.wfile.write(json.dumps(response).encode())
+            elif self.path == '/health':
                 self.send_response(200)
                 self.send_header('Content-type', 'application/json')
                 self.end_headers()
@@ -384,25 +394,25 @@ class HealthHandler(BaseHTTPRequestHandler):
 def get_port() -> int:
     """Get the port number from environment variables with proper fallback."""
     try:
-        # Try AGENT_PORT first (AgentBeats standard), then AGENTBEATS_PORT, then PORT
-        port_str = os.environ.get('AGENT_PORT') or os.environ.get('AGENTBEATS_PORT') or os.environ.get('PORT', '8080')
+        # Check PORT first (Render standard), then fallback to local default for development
+        port_str = os.environ.get('PORT') or '8000'
         
         # Handle empty strings and whitespace
         if not port_str or not port_str.strip():
-            port_str = '8080'
+            port_str = '8000'
         
         port_str = port_str.strip()
         port = int(port_str)
         
         # Validate port range
         if not (1 <= port <= 65535):
-            logger.warning(f"Port {port} out of range, using 8080")
-            port = 8080
+            logger.warning(f"Port {port} out of range, using 8000")
+            port = 8000
             
         return port
     except (ValueError, TypeError) as e:
-        logger.warning(f"Invalid port configuration: {e}, using 8080")
-        return 8080
+        logger.warning(f"Invalid port configuration: {e}, using 8000")
+        return 8000
 
 
 def start_health_server(agent, port: int) -> Optional[threading.Thread]:
@@ -416,7 +426,17 @@ def start_health_server(agent, port: int) -> Optional[threading.Thread]:
             
             def do_GET(self):
                 try:
-                    if self.path == '/health':
+                    if self.path == '/':
+                        # Root endpoint for health checks and monitoring
+                        self.send_response(200)
+                        self.send_header('Content-type', 'application/json')
+                        self.end_headers()
+                        response = {
+                            "status": "ok",
+                            "service": "mechgaia-benchmark"
+                        }
+                        self.wfile.write(json.dumps(response).encode())
+                    elif self.path == '/health':
                         self.send_response(200)
                         self.send_header('Content-type', 'application/json')
                         self.end_headers()

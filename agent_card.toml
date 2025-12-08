@@ -4,7 +4,7 @@ description = "Green agent for MechGAIA benchmark evaluating mechanical engineer
 version = "0.1.0"
 author = "Kurt Walter Soncco Sinchi"
 email = "kurtwal98@berkeley.edu"
-url = "http://localhost:8080"  # Update with your deployment URL
+url = "https://mechgaia-benchmark.onrender.com"
 entrypoint = "agentbeats_main.py"
 
 [agent.capabilities]
@@ -50,6 +50,6 @@ dependencies = [
 
 [agent.deployment]
 # Update these URLs when deploying
-agent_url = "http://localhost:8080"
+agent_url = "https://mechgaia-benchmark.onrender.com"
 launcher_url = "http://localhost:8081"
 healthcheck = "/health"

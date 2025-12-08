@@ -12,3 +12,25 @@ sympy
 
 # Visualization (optional)
 matplotlib
+
+# Web API and Metrics
+fastapi
+uvicorn
+redis
+sqlalchemy
+psycopg2-binary
+
+# CAD Integration
+cadquery
+
+# AgentBeats SDK
+agentbeats
+earthshaker
+
+# LLM Providers
+requests>=2.31.0
+litellm
+
+# A2A and MCP
+aiohttp>=3.9.0
+a2a-sdk

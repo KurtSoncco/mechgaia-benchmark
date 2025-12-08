@@ -1,0 +1,62 @@
+[agent]
+name = "file_agent"
+description = "Simple white agent for testing against MechGAIA benchmark"
+version = "1.0.0"
+author = "MechGAIA Team"
+email = "kurtwal98@berkeley.edu"
+url = "http://localhost:9002"  # Update with your deployment URL
+entrypoint = "white_agents/simple_white_agent.py"
+
+[agent.capabilities]
+tools = [
+    "task_fulfillment",
+    "general_reasoning",
+    "llm_processing"
+]
+
+[agent.skills]
+task_fulfillment = {
+    id = "task_fulfillment",
+    name = "Task Fulfillment",
+    description = "Handles user requests and completes tasks",
+    tags = ["general"]
+}
+
+[agent.llm]
+# Default LLM configuration
+# Can be overridden via environment variables
+default_model = "ollama/llama3"
+default_provider = "ollama"
+temperature = 0.0
+
+# Ollama configuration
+ollama_base_url = "http://localhost:11434"
+
+# OpenAI configuration (requires OPENAI_API_KEY)
+# openai_model = "gpt-4o"
+
+[agent.server]
+host = "localhost"
+port = 9002
+
+[agent.deployment]
+# Update these URLs when deploying
+agent_url = "http://localhost:9002"
+controller_url = "http://localhost:9002"  # For white agents, can be same as agent_url
+launcher_url = "http://localhost:8081"    # Optional: separate launcher service
+
+[agent.environment]
+python_version = ">=3.11"
+dependencies = [
+    "litellm",
+    "uvicorn",
+    "python-dotenv",
+    "agentbeats"
+]
+
+[agent.notes]
+# This is a built-in white agent included in the MechGAIA repository
+# It can be used for local testing and development
+# For production use, deploy with a public URL and register on agentbeats.org
+# The agent uses litellm for LLM interactions, supporting both Ollama and OpenAI
+

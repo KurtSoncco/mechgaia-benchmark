@@ -27,14 +27,15 @@ RUN mkdir -p logs tasks/level2 tasks/level3
 # Set environment variables
 ENV PYTHONPATH=/app
 ENV AGENTBEATS_HOST=0.0.0.0
-ENV AGENTBEATS_PORT=8080
+ENV AGENTBEATS_PORT=${PORT:-8080}
 
-# Expose port
-EXPOSE 8080
+# Expose port (Render will set PORT dynamically)
+EXPOSE ${PORT:-8080}
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD python -c "import urllib.request, os; urllib.request.urlopen(f'http://localhost:{os.environ.get(\"AGENTBEATS_PORT\", os.environ.get(\"PORT\", 8080))}/health')" || exit 1
+    CMD uv run python -c "import urllib.request, os; urllib.request.urlopen(f'http://localhost:{os.environ.get(\"PORT\", 8080)}/health')" || exit 1
 
-# Run the agent
-CMD ["python", "agentbeats_main.py"]
+# Run the agent using uv to ensure the virtual environment is used
+# Use sh -c to expand PORT environment variable
+CMD sh -c "uv run uvicorn agentbeats_main:app --host 0.0.0.0 --port ${PORT:-8080}"

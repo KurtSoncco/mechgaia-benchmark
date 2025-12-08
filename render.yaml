@@ -3,7 +3,7 @@ services:
     name: mechgaia-benchmark
     env: python
     pythonVersion: 3.13
-    buildCommand: uv pip install --system -e .
+    buildCommand: pip install --upgrade pip setuptools wheel && pip install -e .
     startCommand: uvicorn agentbeats_main:app --host 0.0.0.0 --port $PORT
     envVars:
       - key: HOST

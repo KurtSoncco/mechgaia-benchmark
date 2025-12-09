@@ -31,6 +31,9 @@ logging.basicConfig(
     handlers=[logging.StreamHandler(sys.stderr)],
 )
 logger = logging.getLogger("MechGAIA")
+logger.info("=" * 60)
+logger.info("MechGAIA agentbeats_main.py module is being imported")
+logger.info("=" * 60)
 
 # Add the project root to the Python path
 project_root = Path(__file__).parent
@@ -378,11 +381,13 @@ class MechGAIAGreenAgent:
 
 
 # Initialize FastAPI app
+logger.info("Creating FastAPI app instance...")
 app = FastAPI(
     title="MechGAIA Benchmark Agent",
     description="Earthquake site response & MechGAIA benchmark agent.",
     version="1.0.0",
 )
+logger.info("FastAPI app created successfully")
 
 # Add CORS middleware
 app.add_middleware(
@@ -433,13 +438,23 @@ if A2A_SDK_AVAILABLE and AgentCard:
 @app.get("/")
 async def root():
     """Root endpoint for health checks and monitoring."""
-    return {"status": "ok", "service": "mechgaia-benchmark"}
+    logger.info("Root endpoint accessed")
+    return {
+        "status": "ok",
+        "service": "mechgaia-benchmark",
+        "agent_initialized": agent_instance is not None,
+    }
 
 
 @app.get("/health")
 async def health_check():
     """Health check endpoint."""
-    return {"status": "ok", "version": "0.1.0"}
+    logger.info("Health check endpoint accessed")
+    return {
+        "status": "ok",
+        "version": "0.1.0",
+        "agent_initialized": agent_instance is not None,
+    }
 
 
 @app.get("/info")
@@ -678,11 +693,13 @@ if a2a_server and A2A_SDK_AVAILABLE:
 async def startup_event():
     """Initialize the agent when FastAPI starts."""
     global agent_instance
+    logger.info("FastAPI startup event triggered - initializing agent...")
     if agent_instance is None:
         try:
+            logger.info("Creating MechGAIAGreenAgent instance...")
             agent_instance = MechGAIAGreenAgent()
             logger.info(
-                f"Initialized {agent_instance.agent_name} v{agent_instance.version}"
+                f"Successfully initialized {agent_instance.agent_name} v{agent_instance.version}"
             )
             logger.info(f"Supported levels: {agent_instance.supported_levels}")
             if A2A_AVAILABLE:
@@ -693,9 +710,17 @@ async def startup_event():
                 logger.info("A2A SDK: ENABLED (AgentCard and task endpoints available)")
             else:
                 logger.warning("A2A SDK: DISABLED (missing dependencies)")
+            logger.info(
+                "Agent initialization complete - FastAPI is ready to serve requests"
+            )
         except Exception as e:
             logger.critical(f"Failed to initialize agent: {e}")
+            import traceback
+
+            logger.critical(f"Traceback: {traceback.format_exc()}")
             # Don't exit here - let the app start but endpoints will return errors
+    else:
+        logger.info("Agent instance already initialized, skipping initialization")
 
 
 def signal_handler(signum, frame):

@@ -623,11 +623,48 @@ if a2a_server and A2A_SDK_AVAILABLE:
     async def mechgaia_run(task: TaskRequest) -> TaskResponse:
         """Handle MechGAIA benchmark task requests."""
         try:
-            # TODO: call your MechGAIA pipeline here
-            # For now, return a simple success message
+            if agent_instance is None:
+                return TaskResponse(
+                    output="Agent not initialized",
+                    status="FAILED",
+                )
+
+            # Extract task parameters from request
+            task_input = task.input if hasattr(task, "input") else {}
+            white_agent_url = task_input.get("white_agent_url") or task_input.get(
+                "target_url"
+            )
+            task_level = task_input.get("task_level", 1)
+            task_id = task_input.get("task_id", f"mechgaia_level_{task_level}")
+
+            if not white_agent_url:
+                return TaskResponse(
+                    output="white_agent_url or target_url required",
+                    status="FAILED",
+                )
+
+            # Run evaluation
+            state = {
+                "target_url": white_agent_url,
+                "task_level": task_level,
+                "task_id": task_id,
+            }
+
+            result = agent_instance.run_agent(state, {})
+
+            # Format response
+            score = result.get("final_score", result.get("score", 0.0))
             return TaskResponse(
-                output="MechGAIA agent is alive and ready.",
-                status="SUCCEEDED",
+                output=json.dumps(
+                    {
+                        "score": score,
+                        "task_id": task_id,
+                        "details": result.get("details", {}),
+                        "status": "completed" if "error" not in result else "failed",
+                        "error": result.get("error"),
+                    }
+                ),
+                status="SUCCEEDED" if "error" not in result else "FAILED",
             )
         except Exception as e:
             logger.error(f"Error in mechgaia_run skill: {e}")
@@ -674,30 +711,33 @@ def main():
     This function handles the communication with the AgentBeats platform
     and processes incoming evaluation requests.
     """
+    import uvicorn
+
     global agent_instance
 
     # Set up signal handlers for graceful shutdown
     signal.signal(signal.SIGINT, signal_handler)
     signal.signal(signal.SIGTERM, signal_handler)
 
-    # Initialize the agent
-    try:
-        agent_instance = MechGAIAGreenAgent()
-        logger.info(
-            f"Initialized {agent_instance.agent_name} v{agent_instance.version}"
-        )
-        logger.info(f"Supported levels: {agent_instance.supported_levels}")
-        if A2A_AVAILABLE:
-            logger.info("A2A Active Assessment: ENABLED")
-        else:
-            logger.warning("A2A Active Assessment: DISABLED (missing dependencies)")
-        if A2A_SDK_AVAILABLE:
-            logger.info("A2A SDK: ENABLED (AgentCard and task endpoints available)")
-        else:
-            logger.warning("A2A SDK: DISABLED (missing dependencies)")
-    except Exception as e:
-        logger.critical(f"Failed to initialize agent: {e}")
-        sys.exit(1)
+    # Initialize agent if not already done
+    if agent_instance is None:
+        try:
+            agent_instance = MechGAIAGreenAgent()
+            logger.info(
+                f"Initialized {agent_instance.agent_name} v{agent_instance.version}"
+            )
+            logger.info(f"Supported levels: {agent_instance.supported_levels}")
+            if A2A_AVAILABLE:
+                logger.info("A2A Active Assessment: ENABLED")
+            else:
+                logger.warning("A2A Active Assessment: DISABLED (missing dependencies)")
+            if A2A_SDK_AVAILABLE:
+                logger.info("A2A SDK: ENABLED (AgentCard and task endpoints available)")
+            else:
+                logger.warning("A2A SDK: DISABLED (missing dependencies)")
+        except Exception as e:
+            logger.critical(f"Failed to initialize agent: {e}")
+            sys.exit(1)
 
     # Handle command line arguments for AgentBeats
     if len(sys.argv) > 1:
@@ -740,78 +780,16 @@ def main():
             print(json.dumps(result, indent=2))
             return
 
-    # Determine run mode:
-    # - Web service mode: Run as FastAPI server (Render, Docker, production)
-    # - Interactive mode: Read from stdin (AgentBeats platform, local testing)
-
-    # Check for explicit web service mode via environment variable
-    web_service_mode = os.environ.get("WEB_SERVICE_MODE", "true").lower() == "true"
-
-    # Also check if we're in a container or cloud environment
-    is_containerized = (
-        os.path.exists("/.dockerenv")
-        or os.environ.get("RENDER")
-        or os.environ.get("RAILWAY_ENVIRONMENT")
-        or os.environ.get("KUBERNETES_SERVICE_HOST")
-    )
-
-    if web_service_mode or is_containerized:
-        # Web service mode - FastAPI will be started by uvicorn
-        logger.info("Running in web service mode (FastAPI)")
-        logger.info("FastAPI endpoints available:")
-        logger.info("  GET  / - Root endpoint")
-        logger.info("  GET  /health - Health check")
-        logger.info("  GET  /info - Agent information")
-        if A2A_SDK_AVAILABLE:
-            logger.info("  GET  /.well-known/agent-card.json - A2A AgentCard")
-            logger.info("  POST /a2a/task - A2A task endpoint")
-        logger.info("Set WEB_SERVICE_MODE=false to enable interactive mode")
-        # Note: When running with uvicorn, this function won't be called
-        # The FastAPI app will be served directly by uvicorn
-        return
-
-    # Interactive mode for AgentBeats platform (stdin available)
-    try:
-        logger.info("Running in interactive mode (stdin enabled)")
-        logger.info("Waiting for AgentBeats platform input...")
-        while True:
-            # Read input from AgentBeats platform
-            line = sys.stdin.readline()
-            if not line:
-                break
-
-            try:
-                # Parse the incoming state
-                state = json.loads(line.strip())
-
-                # Run the agent
-                result = agent_instance.run_agent(state, {})
-
-                # Send result back to AgentBeats platform
-                print(json.dumps(result))
-                sys.stdout.flush()
-
-            except json.JSONDecodeError as e:
-                error_result = {"error": f"Invalid JSON input: {str(e)}", "score": 0.0}
-                print(json.dumps(error_result))
-                sys.stdout.flush()
-                logger.error(f"JSON Decode Error: {e}")
-            except Exception as e:
-                error_result = {"error": f"Processing error: {str(e)}", "score": 0.0}
-                print(json.dumps(error_result))
-                sys.stdout.flush()
-                logger.error(f"Processing Error: {e}")
-
-    except KeyboardInterrupt:
-        logger.info("Shutdown requested by user")
-    except Exception as e:
-        logger.critical(f"Unexpected error: {e}")
-        import traceback
-
-        traceback.print_exc()
-    finally:
-        logger.info("MechGAIA Green Agent shutting down")
+    # Start FastAPI server with uvicorn
+    port = int(os.getenv("PORT", 8000))
+    logger.info(f"Starting FastAPI server on 0.0.0.0:{port}")
+    uvicorn.run(app, host="0.0.0.0", port=port)
 
 
 if __name__ == "__main__":
-    main()
+    if len(sys.argv) > 1 and sys.argv[1] == "info":
+        if agent_instance is None:
+            agent_instance = MechGAIAGreenAgent()
+        print(json.dumps(agent_instance.get_agent_info(), indent=2))
+    else:
+        main()

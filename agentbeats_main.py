@@ -730,12 +730,10 @@ def signal_handler(signum, frame):
 
 
 def main():
-    """
-    Main entry point for AgentBeats SDK integration.
+    """Main entry point - start both controller and agent"""
+    import threading
+    import time
 
-    This function handles the communication with the AgentBeats platform
-    and processes incoming evaluation requests.
-    """
     import uvicorn
 
     global agent_instance
@@ -743,6 +741,17 @@ def main():
     # Set up signal handlers for graceful shutdown
     signal.signal(signal.SIGINT, signal_handler)
     signal.signal(signal.SIGTERM, signal_handler)
+
+    port = int(os.getenv("PORT", 8000))
+    host = os.getenv("HOST", "0.0.0.0")
+
+    logger.info(f"Starting MechGAIA Green Agent on {host}:{port}")
+    logger.info("FastAPI endpoints available:")
+    logger.info("  GET /health - Health check")
+    logger.info("  GET /info - Agent information")
+    logger.info("  POST /evaluate - Assessment endpoint")
+    logger.info("  GET /.well-known/agent-card.json - A2A agent card")
+    logger.info("  GET /.well-known/agent.json - A2A discovery")
 
     # Initialize agent if not already done
     if agent_instance is None:
@@ -764,57 +773,56 @@ def main():
             logger.critical(f"Failed to initialize agent: {e}")
             sys.exit(1)
 
-    # Handle command line arguments for AgentBeats
+    try:
+        logger.info("Attempting to start AgentBeats Controller...")
+        from earthshaker import create_app as create_controller_app
+
+        controller_port = int(os.getenv("CONTROLLER_PORT", 8001))
+        controller_app = create_controller_app()
+
+        def run_controller():
+            uvicorn.run(
+                controller_app,
+                host=host,
+                port=controller_port,
+                log_level="info",
+            )
+
+        controller_thread = threading.Thread(target=run_controller, daemon=True)
+        controller_thread.start()
+        logger.info(f"Controller started on {host}:{controller_port}")
+        time.sleep(2)  # Give controller time to start
+
+    except Exception as e:
+        logger.warning(f"Could not start controller: {e}")
+        logger.info("Continuing with agent only")
+
+    uvicorn.run(app, host=host, port=port, log_level="info")
+
+
+if __name__ == "__main__":
+    # Handle optional command-line arguments
     if len(sys.argv) > 1:
         command = sys.argv[1]
 
         if command == "info":
-            # Return agent information
-            info = agent_instance.get_agent_info()
-            print(json.dumps(info, indent=2))
-            return
-
-        elif command == "evaluate":
-            # Evaluate a submission from command line
-            if len(sys.argv) < 3:
-                print(
-                    "Usage: python agentbeats_main.py evaluate <submission_file> [task_level]"
-                )
-                sys.exit(1)
-
-            submission_file = sys.argv[2]
-            task_level = int(sys.argv[3]) if len(sys.argv) > 3 else 1
-
-            # Load submission
+            # Return agent information (useful for debugging)
             try:
-                with open(submission_file, "r") as f:
-                    submission_data = json.load(f)
+                if agent_instance is None:
+                    agent_instance = MechGAIAGreenAgent()
+                info = agent_instance.get_agent_info()
+                print(json.dumps(info, indent=2))
             except Exception as e:
-                logger.error(f"Error loading submission: {e}")
-                sys.exit(1)
+                print(json.dumps({"error": str(e)}, indent=2))
+            sys.exit(0)
 
-            # Create state for evaluation
-            state = {
-                "task_level": task_level,
-                "white_agent_submission": submission_data,
-                "task_id": f"mechgaia_level_{task_level}",
-            }
-
-            # Run evaluation
-            result = agent_instance.run_agent(state, {})
-            print(json.dumps(result, indent=2))
-            return
-
-    # Start FastAPI server with uvicorn
-    port = int(os.getenv("PORT", 8000))
-    logger.info(f"Starting FastAPI server on 0.0.0.0:{port}")
-    uvicorn.run(app, host="0.0.0.0", port=port)
-
-
-if __name__ == "__main__":
-    if len(sys.argv) > 1 and sys.argv[1] == "info":
-        if agent_instance is None:
-            agent_instance = MechGAIAGreenAgent()
-        print(json.dumps(agent_instance.get_agent_info(), indent=2))
+        elif command == "run":
+            # Explicit run command
+            main()
+        else:
+            print(f"Unknown command: {command}")
+            print("Usage: python agentbeats_main.py [run|info]")
+            sys.exit(1)
     else:
+        # Default: start the agent
         main()

@@ -22,15 +22,12 @@ classifiers = [
 dependencies = [
     "pandas",
     "numpy",
-    "sympy", 
-    
+    "sympy",
     # CAD Integration
-    "cadquery", 
-    
+    "cadquery",
     # AgentBeats SDK
     "agentbeats",
-    "earthshaker",  # Requires Python >=3.13
-    
+    "earthshaker", # Requires Python >=3.13
     # Web API and Metrics
     "fastapi",
     "uvicorn",
@@ -39,16 +36,14 @@ dependencies = [
     "psycopg2-binary",
     "flask",
     "flask-cors",
-    
     # LLM Providers (optional - install as needed)
     # "openai>=1.0.0",  # For OpenAI provider
     # "anthropic>=0.18.0",  # For Anthropic/Claude provider
-    "requests>=2.31.0",  # For Ollama, Deepseek, and generic providers
-    "litellm",  # For unified LLM API (used by white agent)
-    
+    "requests>=2.31.0", # For Ollama, Deepseek, and generic providers
+    "litellm", # For unified LLM API (used by white agent)
     # A2A and MCP
-    "aiohttp>=3.9.0",  # For async HTTP and WebSocket transport
-    "a2a-sdk",  # For A2A agent card and task endpoints
+    "aiohttp>=3.9.0", # For async HTTP and WebSocket transport
+    "a2a-sdk", # For A2A agent card and task endpoints
 ]
 
 [project.optional-dependencies]

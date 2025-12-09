@@ -3,12 +3,14 @@ services:
     name: mechgaia-benchmark
     env: python
     pythonVersion: 3.13
-    buildCommand: pip install -r requirements.txt && pip install -e .
-    startCommand: uvicorn agentbeats_main:app --host 0.0.0.0 --port $PORT
+    buildCommand: pip install -r requirements.txt && pip install -e . && pip install earthshaker
+    startCommand: python agentbeats_main.py
     envVars:
       - key: HOST
         value: 0.0.0.0
       - key: PORT
-        value: 8080
+        value: 8000
+      - key: CONTROLLER_PORT
+        value: 8001
     healthCheckPath: /health
     autoDeploy: true

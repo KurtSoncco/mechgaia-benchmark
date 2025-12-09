@@ -562,6 +562,60 @@ async def a2a_entrypoint(request: Request):
     return await a2a_server.handle_http_request(request)
 
 
+@app.post("/evaluate")
+async def evaluate(request: Request):
+    """AgentBeats v2 Assessment Endpoint"""
+    try:
+        payload = await request.json()
+        white_agent_url = payload.get("white_agent_url")
+        task_level = payload.get("task_level", 1)
+        task_id = payload.get("task_id", "mechgaia_level_1")
+
+        if not white_agent_url:
+            return JSONResponse(
+                status_code=400, content={"error": "white_agent_url required"}
+            )
+
+        logger.info(f"Assessing {white_agent_url} (Level {task_level})")
+
+        # Run evaluation through your green agent
+        state = {
+            "target_url": white_agent_url,
+            "task_level": task_level,
+            "task_id": task_id,
+        }
+
+        if agent_instance is None:
+            return JSONResponse(
+                status_code=503, content={"error": "Agent not initialized"}
+            )
+
+        result = agent_instance.run_agent(state, {})
+
+        # Extract score (could be "score" or "final_score")
+        score = result.get("final_score", result.get("score", 0.0))
+
+        # Return assessment results in AgentBeats v2 format
+        return JSONResponse(
+            status_code=200,
+            content={
+                "assessment_id": f"assessment_{int(time.time())}",
+                "white_agent_url": white_agent_url,
+                "task_id": task_id,
+                "score": score,
+                "metrics": result.get("details", {}),
+                "status": "completed" if "error" not in result else "failed",
+                "error": result.get("error"),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+            },
+        )
+    except Exception as e:
+        logger.exception("Evaluation failed")
+        return JSONResponse(
+            status_code=500, content={"error": f"Evaluation failed: {str(e)}"}
+        )
+
+
 # Register A2A skill handler if server is available
 if a2a_server and A2A_SDK_AVAILABLE:
 
